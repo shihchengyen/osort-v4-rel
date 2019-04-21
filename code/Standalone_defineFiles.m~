@@ -1,0 +1,27 @@
+% List the files to sort and their accompanying parameters
+
+for ii = 1:123
+    if ii<33
+        array = 'array01';
+    elseif ii>=33 && ii<65
+        array = 'array02';
+    elseif ii>65 && ii <97
+        array = 'array03';
+    else 
+        array = 'array04';
+    end
+    
+
+
+% Standalone_textGUI_demo_new('20181105','session01','array01','002');
+% Standalone_textGUI_demo_new('20181105','session01','array01','008');
+% Standalone_textGUI_demo_new('20181105','session01','array01','024');
+% Standalone_textGUI_demo_new('20181105','session01','array01','033');
+% Standalone_textGUI_demo_new('20181105','session01','array03','086');
+% 
+% Standalone_textGUI_demo_new('20181102','session01','array01','010');
+% Standalone_textGUI_demo_new('20181102','session01','array01','029');
+% Standalone_textGUI_demo_new('20181102','session01','array01','031');
+% Standalone_textGUI_demo_new('20181102','session01','array01','032');
+
+

@@ -1,0 +1,18 @@
+universe     = vanilla
+Executable   = $ENV(GITHUB_MATLAB)/osort-v4-rel/run_testmcc.sh
+Arguments    = /Applications/MATLAB_R2016b.app
+Log          = $ENV(HOME)/condor/distro.$(Cluster).$(Process).log
+Output       = $ENV(HOME)/condor/distro.$(Cluster).$(Process).out
+Error        = $ENV(HOME)/condor/distro.$(Cluster).$(Process).err
+RunAsOwner	 = FALSE
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+transfer_input_files = $ENV(GITHUB_MATLAB)/osort-v4-rel/testmcc.app
+stream_error = True
+stream_output = True
+# request_memory = 12 GB
+environment = "MCR_CACHE_ROOT=/tmp/"
+environment = "MATLAB_PREFDIR=/private/tmp"
+
+Queue 1
