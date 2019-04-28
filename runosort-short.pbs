@@ -1,0 +1,21 @@
+#!/bin/bash 
+  
+#PBS -P RunOSort
+#PBS -q short
+#PBS -l select=1:ncpus=1:mem=10GB 
+#PBS -j oe 
+
+cd $PBS_O_WORKDIR;   ## This line is needed, do not modify. 
+
+# copy data from Synology
+# channel=`echo $PBS_O_WORKDIR | cut -d "/" -f 7-10`
+# echo $channel
+# scp -P 8398 hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/${channel}/rplraw.mat .
+
+${GITHUB_MATLAB}/osort-v4-rel/run_RunOSort.sh /app1/common/matlab/R2016b $PBS_O_WORKDIR
+
+# copy osort directory back to Synology
+# scp -P 8398 -r oSort hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/${channel}/
+
+# delete data and osort directory
+# rm -r oSort rplraw.mat
