@@ -1,0 +1,4 @@
+#!/bin/bash
+
+for i in $*; do echo $i; find $i -name "rplraw.mat" | cut -d "/" -f 1-4 | sort > raw.txt; find $i -name "P1*mat" | cut -d "/" -f 1-4 | sort > p1.txt; comm -23 raw.txt p1.txt | xargs cOStail; rm raw.txt p1.txt; done
+
