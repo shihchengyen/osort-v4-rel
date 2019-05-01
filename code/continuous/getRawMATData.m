@@ -33,15 +33,16 @@ if nargin>1
     
 %     timestamps(:,1) = 1:length(dataSamples); %%%%% WHAT????
 %     timestamps(:,1) =  [fromInd:toInd].*(1e6/samplingFreq);
-    timestamps(:,1) = h.analogTime(fromInd:toInd); % HM edit
-    
+%     timestamps(:,1) = h.analogTime(fromInd:toInd); % HM edit
+    timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
 else
     
     try
         timestamps(:,1) = (1:length(h.analogData)).* (1e6/samplingFreq);
     catch
 %         timestamps(:,1) = (1:length(h.analogData)); % for standaloneInit
-        timestamps(:,1) = h.analogTime; % HM edit
+%         timestamps(:,1) = h.analogTime; % HM edit
+    timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
     end
     
 end
