@@ -1,0 +1,3 @@
+#!/bin/bash
+
+tar -cvzf - $1/rplraw.mat | ssh eleys@atlas7 "cd hpctmp/Data/picasso-misc && tar -xvzf -; cd $1; qsub ~/matlab/osort-v4-rel/runosort-short.pbs"
