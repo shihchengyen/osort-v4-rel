@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ses=$1
+shift
+
+for i in "$@"; do let ai=$i/32+1; ci=$(printf "%.3d" "$i"); aii=$(printf "%.2d" "$ai"); echo $i $ci $ai $aii; cstr=$ses/array$aii/channel$ci; echo $cstr; sOS1 $cstr; done
