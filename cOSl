@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for i in $*; do echo $i; find $i -name "rplraw.mat" | sort; find $i -name "runosort*" | xargs grep -L Error | sort; done
+
+# for i in $*; do echo $i; find $i -name "rplraw.mat" | wc -l; find $i -name "P1*mat" | wc -l; done
+
