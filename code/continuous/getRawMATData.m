@@ -35,10 +35,12 @@ if nargin>1
 %     timestamps(:,1) =  [fromInd:toInd].*(1e6/samplingFreq);
 %     timestamps(:,1) = h.analogTime(fromInd:toInd); % HM edit
     timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
+    timestamps = timestamps(fromInd:toInd,1); % constrain to specified block
 else
     
     try
-        timestamps(:,1) = (1:length(h.analogData)).* (1e6/samplingFreq);
+%         timestamps(:,1) = (1:length(h.analogData)).* (1e6/samplingFreq);
+    timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
     catch
 %         timestamps(:,1) = (1:length(h.analogData)); % for standaloneInit
 %         timestamps(:,1) = h.analogTime; % HM edit
