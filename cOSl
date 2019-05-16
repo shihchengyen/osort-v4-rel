@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in $*; do echo $i; find $i -name "rplraw.mat" | egrep -v 'analog|eye|test' | sort | cut -d "/" -f 1-4 > raw.txt; find $i -name "P1_CL_*.fig" | cut -d "/" -f 1-4 | sort | uniq > p1.txt; cat raw.txt | wc -l; cat p1.txt | wc -l; comm -23 raw.txt p1.txt; rm raw.txt p1.txt; done
+for i in $*; do echo $i; find $i -name "rplraw.mat" | egrep -v 'analog|eye|test' | sort | cut -d "/" -f 1-4 > raw.txt; find $i -name "P1_CL_*.fig" | cut -d "/" -f 1-4 | sort | uniq > p1.txt; cat raw.txt | wc -l; cat p1.txt | wc -l; comm -23 raw.txt p1.txt | xargs cOStail ; rm raw.txt p1.txt; done
 
 # for i in $*; do echo $i; find $i -name "rplraw.mat" | sort; find $i -name "runosort*" | xargs grep -L Error | sort; done
 
