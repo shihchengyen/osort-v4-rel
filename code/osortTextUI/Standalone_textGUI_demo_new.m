@@ -11,7 +11,7 @@ function [] = Standalone_textGUI_demo_new(Date,Session,Array,Channel);
 %% which files to sort
 paths=[];
 
-paths.basePath=['/Volumes/Hippocampus/Data/picasso/' Date '/' Session];    
+paths.basePath=['/Volumes/Hippocampus/Data/picasso-misc/' Date '/' Session];    
 % paths.pathOut=[paths.basePath '/sort'];
 paths.pathRaw=[paths.basePath '/' Array];
 % if a timestampsInclude.txt file is found in this directory, only the 
