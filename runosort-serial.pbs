@@ -14,7 +14,7 @@ cd $PBS_O_WORKDIR;   ## This line is needed, do not modify.
 
 # ${GITHUB_MATLAB}/osort-v4-rel/run_RunOSort.sh /app1/common/matlab/R2016b $PBS_O_WORKDIR
 
-matlab2016b2 -nojvm -nodisplay -nosplash -r "RunOSort(pwd)"
+matlab2016b2 -nodisplay -nosplash -r "RunOSort(pwd)"
 
 # copy osort directory back to Synology
 # scp -P 8398 -r oSort hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/${channel}/
