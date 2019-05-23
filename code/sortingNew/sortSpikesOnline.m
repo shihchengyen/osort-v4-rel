@@ -324,7 +324,7 @@ end
 
 
 %rank
-nrAssigned=zeros(length(baseSpikesID),2);
+nrAssigned=zeros(size(baseSpikesID,1),2);
 nrAssigned(:,1)=baseSpikesID(:,1);
 for i=1:size(baseSpikesID,1)
     indOfSpikes=find(assigned==baseSpikesID(i,1));

@@ -4,7 +4,7 @@ function [hmmsort] = produceFigures_posthoc(sortfile,varargin)
 h = load(sortfile);
 
 % Load user input for params
-params = struct('plotFig',0,'saveFig',0,'constrainWindow',[50:150],'discard','auto','merge','auto');
+params = struct('plotFig',1,'saveFig',0,'constrainWindow',[50:150],'discard','auto','merge','auto');
 [params,paramsIn] = getOptArgs(varargin,params);
 
 % Set up other plotting parameters
@@ -12,7 +12,7 @@ warning('off','stats:pca:ColRankDefX'); % JD: turn off warning about columns of 
 params.paperPosition=[0 0 16 12];
 params.colors = defineClusterColors;
 [params.outputEnding,params.outputOption] = determineFigExportFormat( 'png' );
-params.outputpath = [pwd '/FigsHM/'];
+params.outputpath = [pwd '/FigsVisInsp/'];
 % make dir to store the output figures
 if exist(params.outputpath,'dir')==7
     rmdir(params.outputpath);
@@ -510,7 +510,7 @@ while ~finishDiscard
             hold on
             % Retrieve existing raw trace figure with spike overlay
             sh1 = subplot(2,2,[1 3]);
-            image(sh1,imread([params.existingFigDir 'P' params.channelShort '_CL_' num2str(clusters(ii)) '_zRAW1' params.outputEnding]));
+            image(sh1,imread([params.existingFigDir 'P1' '_CL_' num2str(clusters(ii)) '_zRAW1' params.outputEnding]));
             set(sh1,'XTickLabel',{},'YTickLabel',{});  
             if discardInd(ii)
                 status = 'Discard';
