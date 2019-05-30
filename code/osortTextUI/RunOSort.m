@@ -84,7 +84,7 @@ paramsIn.minNrSpikes=100;
                                                                                                                          
 %params
 % for which blocks will a raw figure be made
-paramsIn.blockNrRawFig=[ 100 ];   
+paramsIn.blockNrRawFig=[ 1 ];   
 paramsIn.outputFormat='png';
 % 1=approx, 2=exact
 paramsIn.thresholdMethod=2; 
