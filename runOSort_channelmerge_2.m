@@ -37,7 +37,7 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
         end
         
         disp(channels_identified{i,1});
-        command = 'qsub ~/matlab/runosort-combined.pbs';
+        command = 'qsub ~/matlab/runosort-v4-rel/runosort-combined.pbs';
         unix(command);
         
         cd(past);
@@ -67,8 +67,7 @@ function [channels_identified] = comb_channels(full_day_path, channel_name)
     end
     
     session_names = session_names(1,1:count-1);
-    session_names
-    
+        
     day_path = pwd;
     channels_identified = cell(150,count+1);
     identified_count = 0;
@@ -102,7 +101,7 @@ function [channels_identified] = comb_channels(full_day_path, channel_name)
             channel_list = channel_list(3:length(channel_list));
 
             for k = 1:length(channel_list)
-                fprintf('%s %s %s\n',session_names{1,i}, array_folders{1,a}, channel_list(k).name);
+%                 fprintf('%s %s %s\n',session_names{1,i}, array_folders{1,a}, channel_list(k).name);
                 if strncmpi(channel_list(k).name, 'channel', 7) == 1
                     found = 0;
                     if identified_count == 0
