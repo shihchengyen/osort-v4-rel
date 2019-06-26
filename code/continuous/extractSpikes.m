@@ -34,8 +34,8 @@ end
 
 %calculate running mean raw signal
 rawMean = runningAverage( rawSignal, 50);
-filteredSignal = filterSignal( Hd,  rawSignal);
-
+%filteredSignal = filterSignal( Hd,  rawSignal); %%%%%kianwei%%%%%
+filteredSignal = rawSignal; %%%%%kianwei%%%%%
 
 %
 %calculate the to-be-thresholded signal, depending on the method used
