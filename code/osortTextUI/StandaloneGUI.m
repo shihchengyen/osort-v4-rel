@@ -105,7 +105,7 @@ for kkk=1:length(filesToProcess) % production
     end
     
     % handles.rawFilename=[paths.pathRaw '/' rawFilePrefix stri '/' 'rplraw' rawFilePostfix]; % HM Edit
-    handles.rawFilename=['rplraw' rawFilePostfix]; % YSC Edit
+    handles.rawFilename=['rplhighpass' rawFilePostfix]; % YSC Edit %kianwei edit
     
     if paramsIn.doDetection
         

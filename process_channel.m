@@ -32,26 +32,32 @@ function [output] = process_channel(current_path)
         command = 'scp -P 8398 hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/';
         cut = strsplit(directories{j}, '/');
         day_channel_piece = strcat(cut{1,length(cut)-2}, '/', cut{1,length(cut)-1}, '/', cut{1,length(cut)}, '/', channels_identified{i,1});
-        command = strcat(command, day_channel_piece, '/rplraw.mat', ' .');
+        command = strcat(command, day_channel_piece, '/rplhighpass.mat', ' .');
         fprintf('%s\n', command);
         mkdir(cut{1,length(cut)-1});
         cd(cut{1,length(cut)-1});       
         unix(command);
             start_indices{1,j} = current;
             start_indices{2,j} = cut{1,length(cut)-1};
-            data_chunks{1,j} = rplraw('auto');
+            data_chunks{1,j} = rplhighpass('auto');
             length(data_chunks{1,j}.data.analogData)
             current = current + length(data_chunks{1,j}.data.analogData);
         cd(current_path);
     end
     
-    full_array = zeros(1,current-1);
+    disp(current);
+    full_array = zeros(current-1,1);
     
-    for j = 1:length(start_indices)-1
-        full_array(1,start_indices{1,j}:start_indices{1,j+1}-1) = data_chunks{1,j}.data.analogData;
+    start = 1;
+    for i = 1:length(data_chunks(1,:))
+        
+        disp(size(data_chunks{1,i}.data.analogData));
+        disp(size(full_array(start:start-1+length(data_chunks{1,i}.data.analogData),1)));
+        full_array(start:start-1+length(data_chunks{1,i}.data.analogData),1) = data_chunks{1,i}.data.analogData;
+        start = start + length(data_chunks{1,i}.data.analogData);
+        disp('round');
     end
     
-    full_array(1,start_indices{1,length(start_indices)}:current-1) = data_chunks{1,channels_identified{i,2}}.data.analogData;
     rw = data_chunks{1,1};
     
     rw.data.analogData = single(transpose(full_array));
@@ -60,7 +66,7 @@ function [output] = process_channel(current_path)
     
     disp(length(rw.data.analogData));
     
-    save('rplraw.mat','rw');
+    save('rplhighpass.mat','rw');
     save('start_times.mat','start_indices');
     
     command = 'rm -r session*';
@@ -70,7 +76,7 @@ function [output] = process_channel(current_path)
     create_pngs(pwd);
     
     cd(current_path);
-    command = 'rm rplraw.mat';
+    command = 'rm rplhighpass.mat';
     unix(command);
     
     command = 'scp -P 8398 -r oSort pngs start_times.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/';

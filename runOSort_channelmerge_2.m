@@ -4,6 +4,11 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
         channel_name = 'all';
     end
     
+    if isempty(channel_name)
+        disp('yes');
+        channel_name = 'all';
+    end
+    
     day = strsplit(full_day_path, '/');
     day = day{1,length(day)};
     channels_identified = comb_channels(full_day_path, channel_name);
@@ -16,31 +21,68 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
     
     warning('off','MATLAB:MKDIR:DirectoryExists');
     
+    splits = strsplit(string(channel_name), '/');
+
+        
     for i = 1:size(channels_identified, 1)
- 
-        split2 = strsplit(channels_identified{i,3}, '/');
-        mkdir(split2{length(split2)});
-        past = cd(split2{length(split2)});
-        mkdir(channels_identified{i,1});
-        cd(channels_identified{i,1});
         
-        day_path = pwd;
-        day_path = strsplit(day_path, '/');
-                
-        path_to_make = strcat('mkdir -p /volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}, '/', day_path{1,length(day_path)-1}, '/',day_path{1,length(day_path)});
-        command = strcat('ssh -p 8398 hippocampus@cortex.nus.edu.sg ''', path_to_make, '''');
-        unix(command);
-        
-        if i == 1
-            unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
-            unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+        if string(channel_name) == 'all'
+            
+            
+            split2 = strsplit(channels_identified{i,3}, '/');
+            mkdir(split2{length(split2)});
+            past = cd(split2{length(split2)});
+            mkdir(channels_identified{i,1});
+            cd(channels_identified{i,1});
+            
+            day_path = pwd;
+            day_path = strsplit(day_path, '/');
+            
+            path_to_make = strcat('mkdir -p /volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}, '/', day_path{1,length(day_path)-1}, '/',day_path{1,length(day_path)});
+            command = strcat('ssh -p 8398 hippocampus@cortex.nus.edu.sg ''', path_to_make, '''');
+            unix(command);
+            
+            if i == 1
+                unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+                unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+            end
+            
+            disp(channels_identified{i,1});
+            command = 'qsub ~/matlab/osort-v4-rel/runosort-combined.pbs';
+            unix(command);
+            
+            cd(past);
+            
+        else
+            
+            for j = 1:length(splits(1,:))
+                if channels_identified{i,1} == splits{1,j}
+                    split2 = strsplit(channels_identified{i,3}, '/');
+                    mkdir(split2{length(split2)});
+                    past = cd(split2{length(split2)});
+                    mkdir(channels_identified{i,1});
+                    cd(channels_identified{i,1});
+
+                    day_path = pwd;
+                    day_path = strsplit(day_path, '/');
+
+                    path_to_make = strcat('mkdir -p /volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}, '/', day_path{1,length(day_path)-1}, '/',day_path{1,length(day_path)});
+                    command = strcat('ssh -p 8398 hippocampus@cortex.nus.edu.sg ''', path_to_make, '''');
+                    unix(command);
+
+                    if i == 1
+                        unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+                        unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+                    end
+
+                    disp(channels_identified{i,1});
+                    command = 'qsub ~/matlab/osort-v4-rel/runosort-combined.pbs';
+                    unix(command);
+
+                    cd(past);
+                end
+            end
         end
-        
-        disp(channels_identified{i,1});
-        command = 'qsub ~/matlab/runosort-v4-rel/runosort-combined.pbs';
-        unix(command);
-        
-        cd(past);
     end
 
     cd(origin);
@@ -137,14 +179,14 @@ function [channels_identified] = comb_channels(full_day_path, channel_name)
     
     channels_identified = channels_identified(1:identified_count,:);
     
-    if string(channel_name) ~= 'all'
-        for i = 1:identified_count
-            if channels_identified{i,1} == string(channel_name)
-                channels_identified = channels_identified(i,:);
-                break;
-            end
-        end
-    end
+%     if string(channel_name) ~= 'all'
+%         for i = 1:identified_count
+%             if channels_identified{i,1} == string(channel_name)
+%                 channels_identified = channels_identified(i,:);
+%                 break;
+%             end
+%         end
+%     end
     
     cd(origin);
     
