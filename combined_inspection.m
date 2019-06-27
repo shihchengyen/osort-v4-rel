@@ -612,8 +612,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-
 function details1_Callback(hObject, eventdata, handles)
 
     
@@ -794,7 +792,9 @@ function details1_Callback(hObject, eventdata, handles)
     else
         handles.long2_stat = 0;
     end
-        
+    
+    contents
+    
     if length(contents) == 1
         if handles.current_display == 1
             set(handles.uipanel1, 'Title', num2str(contents(1)));
@@ -971,7 +971,7 @@ function noise1_Callback(hObject, eventdata, handles)
         end
     end
     
-    refresher(hObject, eventdata, handles);
+%     refresher(hObject, eventdata, handles);
 
 guidata(hObject, handles);
 
@@ -1144,7 +1144,6 @@ function details2_Callback(hObject, eventdata, handles)
     long_arr = [handles.long1, handles.long2];
     long_arr_l = [handles.long1_left, handles.long2_left];
     long_arr_r = [handles.long1_right, handles.long2_right];
-    long_arr_stat = [handles.long1_stat, handles.long2_stat];
 
     cla(long_arr(handles.current_display));
     set(long_arr(handles.current_display),'visible','off');
@@ -1157,6 +1156,23 @@ function details2_Callback(hObject, eventdata, handles)
     else
         handles.long2_stat = 0;
     end
+    
+    contents
+    
+    if length(contents) == 1
+        if handles.current_display == 1
+            set(handles.uipanel1, 'Title', num2str(contents(1)));
+        else
+            set(handles.uipanel2, 'Title', num2str(contents(1)));
+        end
+    else
+        if handles.current_display == 1
+            set(handles.uipanel1, 'Title', strcat(num2str(contents(1)), ' - multiple'));
+        else
+            set(handles.uipanel2, 'Title', strcat(num2str(contents(1)), ' - multiple'));
+        end
+    end
+    
     
     if handles.current_display == 1
         if singular == 1
@@ -1345,7 +1361,7 @@ function details3_Callback(hObject, eventdata, handles)
     long_arr = [handles.long1, handles.long2];
     long_arr_l = [handles.long1_left, handles.long2_left];
     long_arr_r = [handles.long1_right, handles.long2_right];
-    long_arr_stat = [handles.long1_stat, handles.long2_stat];
+    
            
     cla(long_arr(handles.current_display));
     set(long_arr(handles.current_display),'visible','off');
@@ -1358,6 +1374,23 @@ function details3_Callback(hObject, eventdata, handles)
     else
         handles.long2_stat = 0;
     end     
+    
+    
+    contents
+    
+    if length(contents) == 1
+        if handles.current_display == 1
+            set(handles.uipanel1, 'Title', num2str(contents(1)));
+        else
+            set(handles.uipanel2, 'Title', num2str(contents(1)));
+        end
+    else
+        if handles.current_display == 1
+            set(handles.uipanel1, 'Title', strcat(num2str(contents(1)), ' - multiple'));
+        else
+            set(handles.uipanel2, 'Title', strcat(num2str(contents(1)), ' - multiple'));
+        end
+    end
     
     if handles.current_display == 1
         if singular == 1
@@ -1427,7 +1460,7 @@ function noise3_Callback(hObject, eventdata, handles)
                 if handles.noise_status(j) == 1
                     set(handles.merge3,'visible','off');
                 else
-                    set(handles.merge2,'visible','on');
+                    set(handles.merge3,'visible','on');
                 end
             end
         end
