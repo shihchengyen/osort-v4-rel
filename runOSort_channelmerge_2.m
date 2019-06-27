@@ -21,13 +21,12 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
     
     warning('off','MATLAB:MKDIR:DirectoryExists');
     
-    splits = strsplit(string(channel_name), '/');
+    splits = strsplit(string(channel_name), ' ');
 
         
     for i = 1:size(channels_identified, 1)
         
         if string(channel_name) == 'all'
-            
             
             split2 = strsplit(channels_identified{i,3}, '/');
             mkdir(split2{length(split2)});
@@ -56,7 +55,17 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
         else
             
             for j = 1:length(splits(1,:))
-                if channels_identified{i,1} == splits{1,j}
+                
+                if length(splits{1,j}) == 1
+                    out = strcat('channel00', splits{1,j});
+                elseif length(splits{1,j}) == 2
+                    out = strcat('channel0', splits{1,j});
+                else
+                    out = strcat('channel', splits{1,j});
+                end
+                
+                               
+                if channels_identified{i,1} == out
                     split2 = strsplit(channels_identified{i,3}, '/');
                     mkdir(split2{length(split2)});
                     past = cd(split2{length(split2)});
@@ -74,7 +83,8 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
                         unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
                         unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
                     end
-
+                    
+                    disp('entered');
                     disp(channels_identified{i,1});
                     command = 'qsub ~/matlab/osort-v4-rel/runosort-combined.pbs';
                     unix(command);
