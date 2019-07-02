@@ -21,12 +21,13 @@ end
 
 
 function [handles] = initialize_data(hObject, eventdata, handles)
-
+    
     saved_path = pwd;
     channel_no = pwd;
     disp(channel_no);
     handles.channel_no = strcat('channel',extractAfter(channel_no, string('channel')));
     handles.modification_tracker = [];
+    handles.just_started = 1;
     
     handles.start_times = load('start_times.mat');
     handles.start_times = handles.start_times.start_indices;
@@ -45,7 +46,7 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     cd(saved_path);
     
     handles.hp_trace = handles.hp_trace(1:current-1,1);
-    disp('asdfawfasfd');
+
     disp(length(handles.hp_trace));
     
 %     load_highpass = rplhighpass('auto');
@@ -58,14 +59,14 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     folder_name = dir();
     cd(folder_name(length(folder_name)).name);
     handles.spikes_data = load('P1_sorted_new.mat');
+    handles.spikes_data.nrAssigned = flip(handles.spikes_data.nrAssigned);
     cd(channel_path);
 
     disp(handles.spikes_data.nrAssigned);
 
     handles.cluster_names = handles.spikes_data.nrAssigned(:,1);
-    handles.sieved = NaN(length(handles.spikes_data.assignedNegative), 64, length(handles.spikes_data.nrAssigned));
-    handles.sieved_long = NaN(length(handles.spikes_data.assignedNegative), 1000, length(handles.spikes_data.nrAssigned));
-    handles.counter_list = ones(1,length(handles.spikes_data.nrAssigned));
+    disp('checkmark');
+
     handles.snap_nrAssigned = handles.spikes_data.nrAssigned;
     handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned));
     
@@ -75,39 +76,39 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.distinct_plots = temp_arr;
     handles.distinct_plot_count = length(temp_arr);
 
-    handles.max_max = 0;
-    handles.min_min = 0;
+    disp('sieve timing start');
+    
+    handles.meandata = load('./pngs/meandata.mat');
+    handles.meandata = handles.meandata.meandata;
 
-    for i = 1:length(handles.spikes_data.assignedNegative)
-        for j = 1:length(handles.spikes_data.nrAssigned)
-            if handles.spikes_data.assignedNegative(i) == handles.snap_nrAssigned(j,1)
-                for k = 1:length(handles.cluster_names)
-                    if handles.cluster_names(k) == handles.spikes_data.nrAssigned(j,1)
-                        handles.sieved(handles.counter_list(k),:,k) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
-                        handles.sieved_long(handles.counter_list(k),:,k) = handles.hp_trace(handles.spikes_data.allSpikeInds(i)-499:handles.spikes_data.allSpikeInds(i)+500);
-
-                        if max(handles.sieved(handles.counter_list(k),:,k)) > handles.max_max
-                            handles.max_max = max(handles.sieved(handles.counter_list(k),:,k));
-                        end
-                        if min(handles.sieved(handles.counter_list(k),:,k)) < handles.min_min
-                            handles.min_min = min(handles.sieved(handles.counter_list(k),:,k));
-                        end
-
-                        handles.counter_list(k) = handles.counter_list(k) + 1;
-                        break;
-                    end
-                end
-            end
-        end
-    end
-    for i = 1:length(handles.counter_list)
-        handles.counter_list(i) = handles.counter_list(i) - 1;
-    end
-
-    handles.sieved_means = nanmean(handles.sieved, 1);
+    handles.counter_list = cell2mat(handles.meandata(2,:));
+    handles.counter_list = flip(handles.counter_list);
+    
+    handles.sieved_means = cell2mat(handles.meandata(1,:)');
+    handles.sieved_means = flip(handles.sieved_means);
+    handles.sieved_means = handles.sieved_means';
+    size(handles.sieved_means)
+    handles.min_min = handles.meandata{3,1};
+    handles.max_max = handles.meandata{4,1};
+    handles.contents_top = [0 0];
+    
     handles.sieved_means_preserved = handles.sieved_means;
-    handles.sieved_long_preserved = handles.sieved_long;
     handles.counter_list_preserved = handles.counter_list;
+    
+    plot(handles.bg1, 1, 1);
+    cla(handles.bg1);
+    set(handles.bg1,'visible','off');
+    set(handles.bg1,'xtick',[]);
+    plot(handles.bg2, 1, 1);
+    cla(handles.bg2);
+    set(handles.bg2,'visible','off');
+    set(handles.bg2,'xtick',[]);    
+    plot(handles.bg3, 1, 1);
+    cla(handles.bg3);
+    set(handles.bg3,'visible','off');
+    set(handles.bg3,'xtick',[]);    
+    
+    disp('sieve timing end');
     
     handles.candidates = zeros(1,handles.distinct_plot_count);
     
@@ -117,7 +118,7 @@ function [handles] = initialize_data(hObject, eventdata, handles)
         file_name = char(strcat('./pngs/cluster',string(handles.spikes_data.nrAssigned(i,1)),'.png'));
         [handles.png_stuff{i,1}, handles.png_stuff{i,2}, handles.png_stuff{i,3}] = imread(file_name);
     end
-    
+   
     handles.total_pages = ceil(handles.distinct_plot_count/3);
     handles.current_page = 1;
     handles.current_display = 1;
@@ -154,6 +155,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.removing_noise_index = handles.removing_noise_index(1:index - 1);
     handles.noiseless_spikes = handles.noiseless_spikes(1:index - 1,:);
 
+    disp('pca start');
+    handles.peak_values = max(abs(handles.noiseless_spikes), [], 2);
     [~, handles.pca_score, ~] = pca(handles.noiseless_spikes);
     
     handles.pca_base_1 = scatter(handles.pca1, handles.pca_score(:,1), handles.pca_score(:,2));
@@ -178,115 +181,116 @@ function [handles] = initialize_data(hObject, eventdata, handles)
         handles.pca_overlay_3 = scatter(handles.pca3, handles.pca_overlay_data_3(:,1), handles.pca_overlay_data_3(:,2), 'x', 'r');
     hold(handles.pca3, 'off');    
     
+    handles.pca_base_1t = scatter(handles.pca1t, handles.pca_score(:,1), handles.peak_values);
+    handles.pca_base_2t = scatter(handles.pca2t, handles.pca_score(:,1), handles.peak_values);
+    handles.pca_base_3t = scatter(handles.pca3t, handles.pca_score(:,1), handles.peak_values);
+    handles.pca_base_1t.CData = [1 1 1];
+    handles.pca_base_2t.CData = [1 1 1];
+    handles.pca_base_3t.CData = [1 1 1];
+    handles.pca_base_1t.MarkerFaceAlpha = 0.2;
+    handles.pca_base_2t.MarkerFaceAlpha = 0.2;
+    handles.pca_base_3t.MarkerFaceAlpha = 0.2;
+    handles.pca_overlay_data_1t = NaN(size(handles.pca_score,1),2);
+    handles.pca_overlay_data_2t = NaN(size(handles.pca_score,1),2);
+    handles.pca_overlay_data_3t = NaN(size(handles.pca_score,1),2);
+    hold(handles.pca1t, 'on');
+        handles.pca_overlay_1t = scatter(handles.pca1t, handles.pca_overlay_data_1t(:,1), handles.pca_overlay_data_1t(:,2), 'x', 'r');
+    hold(handles.pca1t, 'off');
+    hold(handles.pca2t, 'on');
+        handles.pca_overlay_2t = scatter(handles.pca2t, handles.pca_overlay_data_2t(:,1), handles.pca_overlay_data_2t(:,2), 'x', 'r');
+    hold(handles.pca2t, 'off');
+    hold(handles.pca3t, 'on');
+        handles.pca_overlay_3t = scatter(handles.pca3t, handles.pca_overlay_data_3t(:,1), handles.pca_overlay_data_3t(:,2), 'x', 'r');
+    hold(handles.pca3t, 'off');     
+    
+    
+    disp('pca end');
 
+    handles.small_arr = [handles.small1, handles.small2, handles.small3, handles.small4, handles.small5, handles.small6, handles.small7, handles.small8, handles.small9, handles.small10, handles.small11, handles.small12, handles.small13, handles.small14, handles.small15];
+    handles.current_highlight_details = 0;
+    handles.color_purple = [0.611, 0.086, 0.584];
+    handles.color_blue = [0.3 0.75 0.93];
+    handles.color_beige = [0.901, 0.658, 0.733];
+    handles.color_dark = [0.188, 0.152, 0.349];
+    
+    handles.data_bot = 0;
+    
 guidata(hObject, handles);
+
 
 
 function [handles] = page_plots(hObject, eventdata, handles)
 
-    back_arr = [handles.back1, handles.back2, handles.back3];
-    png_arr = [handles.png1, handles.png2, handles.png3];
     
-    for i = 1:3
-        cla(back_arr(i));
-        cla(png_arr(i));
+    for i = 1:length(handles.small_arr)
+        cla(handles.small_arr(i));
+        set(handles.small_arr(i), 'visible', 'off');
     end
     
     count = 1;
-    handles.box_handles = cell(1,3,length(handles.spikes_data.nrAssigned(:,1)));
+    
+    start = 1 + 15*(handles.current_page - 1);
 
-    start = 1 + 3*(handles.current_page - 1);
-
-    for i = start:min(start+2, handles.distinct_plot_count)
+    for i = start:min(start+14, handles.distinct_plot_count)
+        
+        set(handles.small_arr(count), 'visible', 'on');
+        
+        plot(handles.small_arr(count), [1 64], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2,'Hittest','off');
+        hold(handles.small_arr(count), 'on');
+        plot(handles.small_arr(count), [1 64], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2,'Hittest','off');
+        plot(handles.small_arr(count), 1:64, handles.sieved_means(:,i), 'r', 'LineWidth', 5,'Hittest','off');
+        
         
         [children, indices, children_length] = find_children(handles.distinct_plots(i), hObject, eventdata, handles);
-        
-        
+
         for j = 1:length(indices)
-            if j == 1
-                handles.box_handles{1,count,j} = image(png_arr(count), handles.png_stuff{indices(j),1}, 'AlphaData', handles.png_stuff{indices(j),3});
-                set(handles.box_handles{1,count,j}, 'AlphaData', handles.png_stuff{indices(j),3});
-                hold(png_arr(count), 'on');
-            else
-                handles.box_handles{1,count,j} = image(png_arr(count), handles.png_stuff{indices(j),1}, 'AlphaData', handles.png_stuff{indices(j),3});
-                set(handles.box_handles{1,count,j}, 'AlphaData', handles.png_stuff{indices(j),3});
-            end
+            plot(handles.small_arr(count), 1:64, handles.sieved_means_preserved(:,indices(j)), 'LineWidth', 1,'Hittest','off');
         end
-           
-        hold(png_arr(count), 'off');
+        if handles.noise_status(i) == 0
+            title(handles.small_arr(count), strjoin(cellstr(num2str(children)), ' '));
+        else
+            title(handles.small_arr(count), strcat(strjoin(cellstr(num2str(children)), ' '), ' (noise)'));
+        end
+        hold(handles.small_arr(count), 'off');
 
-        set(png_arr(count),'visible','off');
-        set(png_arr(count), 'XLimSpec', 'Tight');
-        set(png_arr(count), 'YLimSpec', 'Tight');
-
-        plot(back_arr(count), 1:64, handles.sieved_means(1,:,i), 'r', 'LineWidth', 2);
-        ylim(back_arr(count), [handles.min_min, handles.max_max]);
-        xlim(back_arr(count), [0 64]);
-        set(back_arr(count), 'Color', 'None');
-     
+        
+        ylim(handles.small_arr(count), [handles.min_min, handles.max_max]);
+        xlim(handles.small_arr(count), [0 64]);
+        set(handles.small_arr(count), 'ButtonDownFcn', {@small_click, count});
         
         count = count + 1;
 
     end
     
-    handles = page_lists(hObject, eventdata, handles);
-    handles = page_noise(hObject, eventdata, handles);
-
 guidata(hObject, handles);
 
-function [handles] = page_noise(hObject, eventdata, handles)
 
-    set(handles.noise1,'visible','off');
-    set(handles.noise2,'visible','off');
-    set(handles.noise3,'visible','off');
+function [handles] = update_list(target_index, hObject, eventdata, handles)
 
-    noise_list = [handles.noise1, handles.noise2, handles.noise3];
-    lists_list = [handles.list1, handles.list2, handles.list3];
-    
-    for i = 1:length(lists_list)
+    set(handles.list1, 'Value', 1);
+    set(handles.list1,'String',[]);
 
-        if i + 3*(handles.current_page - 1) > handles.distinct_plot_count
-            break;
-        end
-        
-        contents = cellstr(get(lists_list(i),'String'));
-        contents = str2double(contents);
-        contents = contents(2:length(contents));
-        
-        if length(contents) == 1
-            set(noise_list(i),'visible','on');
-            for j = 1:length(handles.noise_status)
-                if handles.snap_nrAssigned(j,1) == contents(1)
-                    set(noise_list(i),'value',handles.noise_status(j));
+
+        [children, ~, count] = find_children(handles.distinct_plots(target_index), hObject, eventdata, handles);
+
+        if length(children) > 1
+            set(handles.noise1, 'visible', 'off');
+        else
+            set(handles.noise1, 'visible', 'on');
+            for i = 1:length(handles.snap_nrAssigned(:,1))
+                if handles.snap_nrAssigned(i,1) == children(1)
+                    set(handles.noise1,'Value',handles.noise_status(i));
+                    break;
                 end
             end
         end
         
-    end
+        children = mat2cell(children, 1, count);
+        children = [{'View All'},children];
+        set(handles.list1,'String', children);
+
 
 guidata(hObject, handles);
-
-
-function [handles] = page_lists(hObject, eventdata, handles)
-
-list_of_lists = [handles.list1, handles.list2, handles.list3];
-for counter = 1:length(list_of_lists)
-    set(list_of_lists(counter), 'Value', 1);
-    set(list_of_lists(counter),'String',[]);
-end
-
-index_to_display = 1 + 3*(handles.current_page - 1);
-
-for counter = 1:length(list_of_lists)
-    if index_to_display > handles.distinct_plot_count
-        break;
-    end
-    [children, ~, count] = find_children(handles.distinct_plots(index_to_display), hObject, eventdata, handles);
-    children = mat2cell(children, 1, count);
-    children = [{'View All'},children];
-    set(list_of_lists(counter),'String', children);
-    index_to_display = index_to_display + 1;
-end
 
 
 function [children, indices, length] = find_children(target, hObject, eventdata, handles)
@@ -307,10 +311,73 @@ function [children, indices, length] = find_children(target, hObject, eventdata,
     children = children(1:index - 1);
     length = index - 1;
 
+function small_click(hObject, eventdata, count)
+
+    handles = guidata(hObject);
+    index = count + 15*(handles.current_page - 1);
+    
+    figHandle = ancestor(hObject, 'figure');
+    clickType = get(figHandle, 'SelectionType');
+    
+    if strcmp(clickType, 'alt')
+        disp('right click');
+        if handles.noise_status(index) == 0
+            if handles.candidates(index) == 1
+                handles.candidates(index) = 0;
+            else
+                handles.candidates(index) = 1;    
+            end
+
+            cla(handles.bg3);
+            cla(handles.png6); 
+            set(handles.pca_base_3, 'visible', 'off');
+            set(handles.pca_overlay_3, 'visible', 'off');
+            cla(handles.ac3, 'reset');
+            cla(handles.sr3, 'reset');        
+
+            if sum(handles.candidates) > 0
+                handles = merge_plot1(hObject, eventdata, handles);
+                handles = merge_plot2(hObject, eventdata, handles);
+                handles = merge_plot34(hObject, eventdata, handles);
+            end
+        end
+    else
+        handles.current_highlight_details = index;
+        handles = update_list(index, hObject, eventdata, handles);
+    end
+    
+    handles = update_colors(hObject, eventdata, handles);
+    
+guidata(hObject, handles);
+    
+function [handles] = update_colors(hObject, eventdata, handles)
+
+count = 1;
+
+for i = 1 + 15*(handles.current_page - 1):min(15 + 15*(handles.current_page - 1), handles.distinct_plot_count)
+    
+    if handles.candidates(i) == 1
+        if handles.current_highlight_details ~= i
+            set(handles.small_arr(count), 'Color', handles.color_blue);
+            
+        else
+            set(handles.small_arr(count), 'Color', handles.color_purple);
+        end
+    else
+        if handles.current_highlight_details == i
+            set(handles.small_arr(count), 'Color', handles.color_beige);
+        else
+            set(handles.small_arr(count), 'Color', [1 1 1]);
+        end
+    end
+    count = count + 1;
+end
+
+guidata(hObject, handles);
+
+
 function [handles] = merge_plot1(hObject, eventdata, handles)
 
-        cla(handles.back6);
-        cla(handles.png6);
         indices = zeros(1, length(handles.spikes_data.nrAssigned(:,1)));
         count = 1;
         for i = 1:handles.distinct_plot_count
@@ -358,17 +425,19 @@ function [handles] = merge_plot1(hObject, eventdata, handles)
         
         for j = 1:length(indices)
             if j == 1
-                plot(handles.back6, 1:64, handles.sieved_means(1,:,indices(j)), 'r', 'LineWidth', 2);
-                hold(handles.back6, 'on');
+                plot(handles.bg3, 1:64, handles.sieved_means(:,indices(j)), 'r', 'LineWidth', 2);
+                hold(handles.bg3, 'on');
             else
-                plot(handles.back6, 1:64, handles.sieved_means(1,:,indices(j)), 'r', 'LineWidth', 2);
+                plot(handles.bg3, 1:64, handles.sieved_means(:,indices(j)), 'r', 'LineWidth', 2);
             end
         end
-        hold(handles.back6, 'off');
+        plot(handles.bg3, [1 64], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.bg3, [1 64], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        hold(handles.bg3, 'off');
                 
-        ylim(handles.back6, [handles.min_min, handles.max_max]);
-        xlim(handles.back6, [0 64]);
-        set(handles.back6, 'Color', 'None');
+        ylim(handles.bg3, [handles.min_min, handles.max_max]);
+        xlim(handles.bg3, [0 64]);
+        set(handles.bg3, 'Color', 'None');
 
 guidata(hObject, handles);
 
@@ -390,17 +459,29 @@ function [handles] = merge_plot2(hObject, eventdata, handles)
         contents = contents(1:count-1);
 
 
-    out = pca_siever(handles, contents, handles.pca_score);
+    out,outt = pca_siever(handles, contents, handles.pca_score);
 
+    set(handles.pca_base_3, 'visible', 'on');
+    set(handles.pca_overlay_3, 'visible', 'on');
     handles.pca_base_3.CData = [0 1 0];
 
     handles.pca_overlay_3.XData = out(:,1);
     handles.pca_overlay_3.YData = out(:,2);
+    
+    set(handles.pca_base_3t, 'visible', 'on');
+    set(handles.pca_overlay_3t, 'visible', 'on');
+    handles.pca_base_3t.CData = [0 1 0];
+
+    handles.pca_overlay_3t.XData = outt(:,1);
+    handles.pca_overlay_3t.YData = outt(:,2);    
 
 
 guidata(hObject, handles);
     
 function [handles] = merge_plot34(hObject, eventdata, handles)
+
+        set(handles.ac3, 'visible', 'on');
+        set(handles.sr3, 'visible', 'on');
 
         contents = zeros(1, length(handles.spikes_data.nrAssigned(:,1)));
         count = 1;
@@ -417,10 +498,7 @@ function [handles] = merge_plot34(hObject, eventdata, handles)
         contents = contents(1:count-1);    
 
                 %%%% start autocorr/spikerates part %%%%
-        
-        axes_sr = [handles.sr1, handles.sr2];
-        axes_ac = [handles.ac1, handles.ac2];
-         
+
         
         curr_spikes = NaN(length(handles.spikes_data.assignedNegative), 64);
         curr_times = NaN(1,length(handles.spikes_data.assignedNegative));
@@ -503,6 +581,7 @@ function [handles] = merge_plot34(hObject, eventdata, handles)
         tvect = tvect(2:100);
         Cxx = Cxx(2:100);
         
+        plot(handles.ac3t, tvect(1:10), Cxx(1:10).');
         plot(handles.ac3, tvect, Cxx.');
         
         %%%%% end autocorr/spikerates part %%%%%
@@ -539,21 +618,8 @@ function next_Callback(hObject, eventdata, handles)
 if handles.current_page < handles.total_pages
     handles.current_page = handles.current_page + 1;
     handles = page_plots(hObject, eventdata, handles);
+    handles = update_colors(hObject, eventdata, handles);
     
-    merge_list = [handles.merge1, handles.merge2, handles.merge3];
-    
-    for i = 1:3
-        if i + 3*(handles.current_page - 1) > handles.distinct_plot_count
-            break;
-        end
-        if handles.noise_status(i + 3*(handles.current_page - 1)) == 1
-            set(merge_list(i),'visible','off');
-            set(merge_list(i),'value',0);
-        else
-            set(merge_list(i),'visible','on');
-            set(merge_list(i),'value',handles.candidates(i + 3*(handles.current_page - 1)));
-        end
-    end
 end
 
 guidata(hObject, handles);
@@ -564,21 +630,8 @@ function back_Callback(hObject, eventdata, handles)
 if handles.current_page > 1
     handles.current_page = handles.current_page - 1;
     handles = page_plots(hObject, eventdata, handles);
+    handles = update_colors(hObject, eventdata, handles);
     
-    merge_list = [handles.merge1, handles.merge2, handles.merge3];
-    
-    for i = 1:3
-        if i + 3*(handles.current_page - 1) > handles.distinct_plot_count
-            break;
-        end
-        if handles.noise_status(i + 3*(handles.current_page - 1)) == 1
-            set(merge_list(i),'visible','off');
-            set(merge_list(i),'value',0);
-        else
-            set(merge_list(i),'visible','on');
-            set(merge_list(i),'value',handles.candidates(i + 3*(handles.current_page - 1)));
-        end
-    end
 end
 
 guidata(hObject, handles);
@@ -593,23 +646,198 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+function [handles] = details1_bot(hObject, eventdata, handles)
 
-function list2_Callback(hObject, eventdata, handles)
+    
+    contents = handles.contents_bot;
+      
+    index_for_png = zeros(1,length(contents));
+    for i = 1:length(contents)
+        for j = 1:length(handles.snap_nrAssigned(:,1))
+            if handles.snap_nrAssigned(j,1) == contents(i)
+                index_for_png(i) = j;
+            end
+        end
+    end
+    
+    axes_handles1 = [handles.png4, handles.png5];
+    axes_handles2 = [handles.back4, handles.back5];
+    
+    pca_invis = [handles.pca_base_1, handles.pca_base_2];
+    pca_overlay = [handles.pca_overlay_1, handles.pca_overlay_2];
+    
+    for j = 1:size(index_for_png, 2)
+        if j == 1
+            temp_handle = image(axes_handles1(2), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
+            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
+            hold(axes_handles1(2), 'on');
+        else
+            temp_handle = image(axes_handles1(2), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
+            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
+        end
+    end
+    
+    hold(axes_handles1(2), 'off');
+    
+        set(axes_handles1(2),'visible','off');
+        set(axes_handles1(2), 'XLimSpec', 'Tight');
+        set(axes_handles1(2), 'YLimSpec', 'Tight');
+    
+        for j = 1:size(index_for_png, 2)
+            if j == 1
+                plot(axes_handles2(2), 1:64, handles.sieved_means_preserved(:,index_for_png(1,j)), 'r', 'LineWidth', 2);
+                hold(axes_handles2(2), 'on');
+            else
+                plot(axes_handles2(2), 1:64, handles.sieved_means_preserved(:,index_for_png(1,j)), 'r', 'LineWidth', 2);
+            end            
+        end
+        
+        plot(axes_handles2(2), [1 64], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(axes_handles2(2), [1 64], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        hold(axes_handles2(2), 'off');
+        
+        ylim(axes_handles2(2), [handles.min_min, handles.max_max]);
+        xlim(axes_handles2(2), [0 64]);
+        set(axes_handles2(2), 'Color', 'None');   
+        
+            
+        %%%%%%% pca part %%%%%%%%
+        
+        [out, outt] = pca_siever(handles, contents, handles.pca_score);
+        
+        pca_invis(2).CData = [0 1 0];
+                
+        pca_overlay(2).XData = out(:,1);
+        pca_overlay(2).YData = out(:,2);
+        
+        handles.pca_base_2t.CData = [0 1 0];
 
-function list2_CreateFcn(hObject, eventdata, handles)
+        handles.pca_overlay_2t.XData = outt(:,1);
+        handles.pca_overlay_2t.YData = outt(:,2);        
+        
+        %%%%% end pca part %%%%%%
+        
+        %%%% start autocorr/spikerates part %%%%
+        
+        axes_sr = [handles.sr1, handles.sr2];
+        axes_ac = [handles.ac1, handles.ac2];
+         
+        
+        curr_spikes = NaN(length(handles.spikes_data.assignedNegative), 64);
+        curr_times = NaN(1,length(handles.spikes_data.assignedNegative));
+        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
+        count = 1;
+        for i = 1:length(handles.spikes_data.assignedNegative)
+            for j = 1:length(contents)
+                if handles.spikes_data.assignedNegative(i) == contents(j)
+                    curr_spikes(count,:) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
+                    curr_times(1,count) = handles.spikes_data.allSpikeInds(i);
+                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
+                    count = count + 1;
+                    break;
+                end
+            end
+        end
+        curr_spikes = curr_spikes(1:count-1,:);
+        curr_times = curr_times(1,1:count-1);
+        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
+       
+         
+        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+         
+        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
+         
 
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+        time_tracker = 1;
+        counter = 0;
+        amp_summer = 0;
+        index = 1;
+        total_length = length(handles.hp_trace);
+        total_curr_spikes = length(curr_times);
+        amp_data = zeros(floor(total_length/(30000*100)),1);
+        sr_data = zeros(floor(total_length/(30000*100)),1);
+        data_index = 1;
+
+        while time_tracker < total_length
+            if index > total_curr_spikes
+                sr_data(data_index) = 0;
+                amp_data(data_index) = 0;
+                data_index = data_index + 1;
+                time_tracker = time_tracker + 30000*100;
+            elseif curr_times(index) < time_tracker + 30000*100
+                amp_summer = amp_summer + curr_spikes(index,24);
+                counter = counter + 1;
+            else
+                sr_data(data_index) = counter/100;
+                if counter ~= 0
+                    amp_data(data_index) = double(amp_summer)/counter;
+                else
+                    amp_data(data_index) = 0;
+                end
+                time_tracker = time_tracker + 30000*100;
+                data_index = data_index + 1;
+                amp_summer = 0;
+                counter = 0;
+            end 
+            index = index + 1;
+        end
+
+        time_axis = linspace(0,total_length/1800000,length(sr_data)); 
+         
+        axes(axes_sr(2));
+        cla reset;
+        yyaxis left
+        plot(time_axis, sr_data);
+        ylim([min(sr_data)-0.005, max(sr_data)+0.005]);
+        hold on
+        yyaxis right
+        plot(time_axis, amp_data, '--');
+        ylim([min(amp_data)-5, max(amp_data)+5]);
+        yyaxis left
+        hold off
+        xlim([0,(time_axis(end)+0.05)]);
+        
+        Cxx(1) = [];
+
+        tvect = tvect(floor(length(tvect)/2):length(tvect));
+        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+        tvect = tvect(2:100);
+        Cxx = Cxx(2:100);
+        
+        plot(axes_ac(2), tvect, Cxx.');
+        plot(handles.ac2t, tvect(1:10), Cxx(1:10).');
+        
+        %%%%% end autocorr/spikerates part %%%%%
+           
+    long_arr = [handles.long1, handles.long2];
+    long_arr_l = [handles.long1_left, handles.long2_left];
+    long_arr_r = [handles.long1_right, handles.long2_right];
+
+    cla(long_arr(2));
+    set(long_arr(2),'visible','off');
+
+    set(long_arr_l(2), 'visible', 'off');
+    set(long_arr_r(2), 'visible', 'off');
+
+    handles.long2_stat = 0;
+
+    
+    if length(contents) == 1
+
+            set(handles.uipanel2, 'Title', num2str(contents(1)));
+
+    else
+
+            set(handles.uipanel2, 'Title', strcat(num2str(contents(1)), ' - multiple'));
+
+    end
+    
+    [ts, handles.updated_index_bot] = search_ts_forward(handles, 0, contents);
+    handles.data_bot = ts;
+    
+guidata(hObject, handles);
 
 
-function list3_Callback(hObject, eventdata, handles)
-
-function list3_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 function details1_Callback(hObject, eventdata, handles)
@@ -618,15 +846,16 @@ function details1_Callback(hObject, eventdata, handles)
     contents = cellstr(get(handles.list1,'String'));
     contents = str2double(contents{get(handles.list1,'Value')});
     
-    singular = 1;
     if isnan(contents) == 1
-        singular = 0;
         contents = cellstr(get(handles.list1,'String'));
         contents = str2double(contents);
         contents = contents(2:length(contents));
     end
     
-      
+    handles.contents_bot = handles.contents_top;
+    handles.contents_top = contents;
+    
+         
     index_for_png = zeros(1,length(contents));
     for i = 1:length(contents)
         for j = 1:length(handles.snap_nrAssigned(:,1))
@@ -661,13 +890,15 @@ function details1_Callback(hObject, eventdata, handles)
     
         for j = 1:size(index_for_png, 2)
             if j == 1
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
+                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(:,index_for_png(1,j)), 'r', 'LineWidth', 2);
                 hold(axes_handles2(handles.current_display), 'on');
             else
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
+                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(:,index_for_png(1,j)), 'r', 'LineWidth', 2);
             end            
         end
         
+        plot(axes_handles2(handles.current_display), [1 64], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(axes_handles2(handles.current_display), [1 64], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
         hold(axes_handles2(handles.current_display), 'off');
         
         ylim(axes_handles2(handles.current_display), [handles.min_min, handles.max_max]);
@@ -677,12 +908,17 @@ function details1_Callback(hObject, eventdata, handles)
             
         %%%%%%% pca part %%%%%%%%
         
-        out = pca_siever(handles, contents, handles.pca_score);
+        [out, outt] = pca_siever(handles, contents, handles.pca_score);
         
         pca_invis(handles.current_display).CData = [0 1 0];
+
+        handles.pca_overlay_1.XData = out(:,1);
+        handles.pca_overlay_1.YData = out(:,2);
         
-        pca_overlay(handles.current_display).XData = out(:,1);
-        pca_overlay(handles.current_display).YData = out(:,2);
+        handles.pca_base_1t.CData = [0 1 0];
+        
+        handles.pca_overlay_1t.XData = outt(:,1);
+        handles.pca_overlay_1t.YData = outt(:,2);
         
         %%%%% end pca part %%%%%%
         
@@ -764,7 +1000,7 @@ function details1_Callback(hObject, eventdata, handles)
         ylim([min(amp_data)-5, max(amp_data)+5]);
         yyaxis left
         hold off
-        xlim([0,(time_axis(end)+5)]);
+        xlim([0,(time_axis(end)+0.05)]);
         
         Cxx(1) = [];
 
@@ -774,6 +1010,7 @@ function details1_Callback(hObject, eventdata, handles)
         Cxx = Cxx(2:100);
         
         plot(axes_ac(handles.current_display), tvect, Cxx.');
+        plot(handles.ac1t, tvect(1:10), Cxx(1:10).');
         
         %%%%% end autocorr/spikerates part %%%%%
            
@@ -793,8 +1030,6 @@ function details1_Callback(hObject, eventdata, handles)
         handles.long2_stat = 0;
     end
     
-    contents
-    
     if length(contents) == 1
         if handles.current_display == 1
             set(handles.uipanel1, 'Title', num2str(contents(1)));
@@ -809,48 +1044,83 @@ function details1_Callback(hObject, eventdata, handles)
         end
     end
     
-    if handles.current_display == 1
-        if singular == 1
-            
-          
-            handles.data_top = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-
-            
-            handles.data_top = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+1),:,3*(handles.current_page-1)+1); % dummy
-        end
-        handles.current_display = 2;
-    else
-        if singular == 1
-            
-           
-            handles.data_btm = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-            
-          
-            handles.data_btm = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+1),:,3*(handles.current_page-1)+1); % dummy
-        end        
-        handles.current_display = 1;
+    if handles.just_started == 0
+        handles.updated_index_bot = handles.updated_index_top;
     end
-        
-
+    
+    [ts, handles.updated_index_top] = search_ts_forward(handles, 0, contents);
+    
+    if handles.just_started == 0
+        handles.data_bot = handles.data_top;
+    end
+    
+    handles.data_top = ts;
+    
+    if handles.just_started == 0
+        handles = details1_bot(hObject, eventdata, handles);
+    end
+    
+    handles.just_started = 0;
+    
 guidata(hObject, handles);
 
 
-function [sieved_pca] = pca_siever(handles, target_arr, full_pca)
+
+
+function [ts, updated_index] = search_ts_forward(handles, current_index, targets)
+
+    start = 1;
+    for i = current_index:length(handles.spikes_data.assignedNegative)
+        if start ~= 1
+            for j = 1:length(targets)
+                if handles.spikes_data.assignedNegative(i) == targets(j)
+                    updated_index = i;
+                    ts = handles.hp_trace(handles.spikes_data.allSpikeInds(i)-499:handles.spikes_data.allSpikeInds(i)+500)';
+                    return
+                end
+            end
+        end
+        start = 0;
+    end
+
+function [ts, updated_index] = search_ts_backward(handles, current_index, targets)
+
+    start = 1;
+    for i = current_index:-1:1
+        if start ~= 1
+            for j = 1:length(targets)
+                if handles.spikes_data.assignedNegative(i) == targets(j)
+                    updated_index = i;
+                    ts = handles.hp_trace(handles.spikes_data.allSpikeInds(i)-499:handles.spikes_data.allSpikeInds(i)+500)';
+                    return
+                end
+            end
+        end
+        start = 0;
+    end        
+      
+    
+    
+
+
+function [sieved_pca, sieved_pcat] = pca_siever(handles, target_arr, full_pca)
 
 sieved_pca = NaN(size(full_pca,1),2);    
+sieved_pcat = NaN(size(full_pca,1),2);
     
 counter = 1;
 for i = 1:length(handles.removing_noise_index)
     for j = 1:length(target_arr)
         if handles.removing_noise_index(i) == target_arr(j)            
             sieved_pca(counter,:) = full_pca(i,1:2);
+            sieved_pcat(counter,1) = full_pca(i,1);
+            sieved_pcat(counter,2) = handles.peak_values(i);
             counter = counter + 1;
             break;
         end
     end
 end
+
 
 
 function kick1_Callback(hObject, eventdata, handles)
@@ -868,11 +1138,23 @@ function kick1_Callback(hObject, eventdata, handles)
     disp(contents);
     disp(handles.spikes_data.nrAssigned);
     
+    found = 0;
+    regroup = 0;
+    
     for i = 1:length(contents)
         for j = 1:length(handles.spikes_data.nrAssigned(:,1))
             if handles.snap_nrAssigned(j,1) == contents(i)
                 handles.spikes_data.nrAssigned(j,1) = handles.snap_nrAssigned(j,1);
-                break;
+                found = 1;
+            elseif found == 1
+                if handles.spikes_data.nrAssigned(j,1) == contents(i)
+                    if regroup == 0
+                        handles.spikes_data.nrAssigned(j,1) = handles.snap_nrAssigned(j,1);
+                        regroup = handles.snap_nrAssigned(j,1);
+                    else
+                        handles.spikes_data.nrAssigned(j,1) = regroup;
+                    end
+                end
             end
         end
     end
@@ -883,608 +1165,11 @@ function kick1_Callback(hObject, eventdata, handles)
 
 guidata(hObject, handles);
 
-function kick2_Callback(hObject, eventdata, handles)
-
-    disp('kicking');
-    contents = cellstr(get(handles.list2,'String'));
-    contents = str2double(contents{get(handles.list2,'Value')});
-
-    if isnan(contents) == 1
-        contents = cellstr(get(handles.list2,'String'));
-        contents = str2double(contents);
-        contents = contents(2:length(contents));
-    end
-    
-    disp(contents);
-    disp(handles.spikes_data.nrAssigned);
-    
-    for i = 1:length(contents)
-        for j = 1:length(handles.spikes_data.nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                handles.spikes_data.nrAssigned(j,1) = handles.snap_nrAssigned(j,1);
-                break;
-            end
-        end
-    end
-    
-    disp(handles.spikes_data.nrAssigned);
-
-    handles = refresher(hObject, eventdata, handles);
-
-guidata(hObject, handles);
-
-function kick3_Callback(hObject, eventdata, handles)
-
-    disp('kicking');
-    contents = cellstr(get(handles.list3,'String'));
-    contents = str2double(contents{get(handles.list3,'Value')});
-
-    if isnan(contents) == 1
-        contents = cellstr(get(handles.list3,'String'));
-        contents = str2double(contents);
-        contents = contents(2:length(contents));
-    end
-    
-    disp(contents);
-    disp(handles.spikes_data.nrAssigned);
-    
-    for i = 1:length(contents)
-        for j = 1:length(handles.spikes_data.nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                handles.spikes_data.nrAssigned(j,1) = handles.snap_nrAssigned(j,1);
-                break;
-            end
-        end
-    end
-    
-    disp(handles.spikes_data.nrAssigned);
-
-    handles = refresher(hObject, eventdata, handles);
-
-guidata(hObject, handles);
-
-function merge1_Callback(hObject, eventdata, handles)
-
-    handles.candidates(1 + 3*(handles.current_page - 1)) = get(handles.merge1,'Value');
-    handles = merge_plot1(hObject, eventdata, handles);
-    handles = merge_plot2(hObject, eventdata, handles);
-    handles = merge_plot34(hObject, eventdata, handles);
-    
-guidata(hObject, handles);
-
-function noise1_Callback(hObject, eventdata, handles)
-
-    contents = cellstr(get(handles.list1,'String'));
-    contents = str2double(contents);
-    contents = contents(2:length(contents));
-    
-    for i = 1:length(contents)
-        for j = 1:length(handles.snap_nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                handles.noise_status(j) = get(handles.noise1,'Value');
-                if handles.noise_status(j) == 1
-                    set(handles.merge1,'visible','off');
-                else
-                    set(handles.merge1,'visible','on');
-                end               
-            end
-        end
-    end
-    
-%     refresher(hObject, eventdata, handles);
-
-guidata(hObject, handles);
-
-
-function details2_Callback(hObject, eventdata, handles)
-
-
-    contents = cellstr(get(handles.list2,'String'));
-    contents = str2double(contents{get(handles.list2,'Value')});
-
-    singular = 1;
-    if isnan(contents) == 1
-        singular = 0;
-        contents = cellstr(get(handles.list2,'String'));
-        contents = str2double(contents);
-        contents = contents(2:length(contents));
-    end
-  
-    disp(handles.spikes_data.nrAssigned);
-    disp(contents);
-    
-    index_for_png = zeros(1,length(contents));
-    for i = 1:length(contents)
-        for j = 1:length(handles.snap_nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                index_for_png(i) = j;
-            end
-        end
-    end
-    
-    axes_handles1 = [handles.png4, handles.png5];
-    axes_handles2 = [handles.back4, handles.back5];
-    pca_invis = [handles.pca_base_1, handles.pca_base_2];
-    pca_overlay = [handles.pca_overlay_1, handles.pca_overlay_2];
-    
-    for j = 1:size(index_for_png, 2)
-        if j == 1
-            temp_handle = image(axes_handles1(handles.current_display), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            hold(axes_handles1(handles.current_display), 'on');
-        else
-            temp_handle = image(axes_handles1(handles.current_display), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-        end
-    end
-    
-    hold(axes_handles1(handles.current_display), 'off');
-    
-        set(axes_handles1(handles.current_display),'visible','off');
-        set(axes_handles1(handles.current_display), 'XLimSpec', 'Tight');
-        set(axes_handles1(handles.current_display), 'YLimSpec', 'Tight');
-    
-        for j = 1:size(index_for_png, 2)
-            if j == 1
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
-                hold(axes_handles2(handles.current_display), 'on');
-            else
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
-            end            
-        end
-        
-        hold(axes_handles2(handles.current_display), 'off');
-        
-        ylim(axes_handles2(handles.current_display), [handles.min_min, handles.max_max]);
-        xlim(axes_handles2(handles.current_display), [0 64]);
-        set(axes_handles2(handles.current_display), 'Color', 'None');    
-        
-        %%%%%%% pca part %%%%%%%%
-        
-        out = pca_siever(handles, contents, handles.pca_score);
-        
-        pca_invis(handles.current_display).CData = [0 1 0];
-        
-        pca_overlay(handles.current_display).XData = out(:,1);
-        pca_overlay(handles.current_display).YData = out(:,2);
-        
-        %%%%% end pca part %%%%%%
-        
-        %%%% start autocorr/spikerates part %%%%
-        
-        axes_sr = [handles.sr1, handles.sr2];
-        axes_ac = [handles.ac1, handles.ac2];
-         
-        
-        curr_spikes = NaN(length(handles.spikes_data.assignedNegative), 64);
-        curr_times = NaN(1,length(handles.spikes_data.assignedNegative));
-        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
-        count = 1;
-        for i = 1:length(handles.spikes_data.assignedNegative)
-            for j = 1:length(contents)
-                if handles.spikes_data.assignedNegative(i) == contents(j)
-                    curr_spikes(count,:) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
-                    curr_times(1,count) = handles.spikes_data.allSpikeInds(i);
-                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
-                    count = count + 1;
-                    break;
-                end
-            end
-        end
-        curr_spikes = curr_spikes(1:count-1,:);
-        curr_times = curr_times(1,1:count-1);
-        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
-       
-         
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-         
-        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
-         
-
-        time_tracker = 1;
-        counter = 0;
-        amp_summer = 0;
-        index = 1;
-        total_length = length(handles.hp_trace);
-        total_curr_spikes = length(curr_times);
-        amp_data = zeros(floor(total_length/(30000*100)),1);
-        sr_data = zeros(floor(total_length/(30000*100)),1);
-        data_index = 1;
-
-        while time_tracker < total_length
-            if index > total_curr_spikes
-                sr_data(data_index) = 0;
-                amp_data(data_index) = 0;
-                data_index = data_index + 1;
-                time_tracker = time_tracker + 30000*100;
-            elseif curr_times(index) < time_tracker + 30000*100
-                amp_summer = amp_summer + curr_spikes(index,24);
-                counter = counter + 1;
-            else
-                sr_data(data_index) = counter/100;
-                if counter ~= 0
-                    amp_data(data_index) = double(amp_summer)/counter;
-                else
-                    amp_data(data_index) = 0;
-                end
-                time_tracker = time_tracker + 30000*100;
-                data_index = data_index + 1;
-                amp_summer = 0;
-                counter = 0;
-            end 
-            index = index + 1;
-        end
-
-        time_axis = linspace(0,total_length/30000,length(sr_data)); 
-         
-        axes(axes_sr(handles.current_display));
-        cla reset;
-        yyaxis left
-        plot(time_axis, sr_data);
-        ylim([min(sr_data)-0.005, max(sr_data)+0.005]);
-        hold on
-        yyaxis right
-        plot(time_axis, amp_data, '--');
-        ylim([min(amp_data)-5, max(amp_data)+5]);
-        yyaxis left
-        hold off
-        xlim([0,(time_axis(end)+5)]);
-        
-        Cxx(1) = [];
-
-        tvect = tvect(floor(length(tvect)/2):length(tvect));
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        tvect = tvect(2:100);
-        Cxx = Cxx(2:100);
-        
-        plot(axes_ac(handles.current_display), tvect, Cxx.');
-        
-        %%%%% end autocorr/spikerates part %%%%%        
-
-    long_arr = [handles.long1, handles.long2];
-    long_arr_l = [handles.long1_left, handles.long2_left];
-    long_arr_r = [handles.long1_right, handles.long2_right];
-
-    cla(long_arr(handles.current_display));
-    set(long_arr(handles.current_display),'visible','off');
-
-    set(long_arr_l(handles.current_display), 'visible', 'off');
-    set(long_arr_r(handles.current_display), 'visible', 'off');
-
-    if handles.current_display == 1
-        handles.long1_stat = 0;
-    else
-        handles.long2_stat = 0;
-    end
-    
-    contents
-    
-    if length(contents) == 1
-        if handles.current_display == 1
-            set(handles.uipanel1, 'Title', num2str(contents(1)));
-        else
-            set(handles.uipanel2, 'Title', num2str(contents(1)));
-        end
-    else
-        if handles.current_display == 1
-            set(handles.uipanel1, 'Title', strcat(num2str(contents(1)), ' - multiple'));
-        else
-            set(handles.uipanel2, 'Title', strcat(num2str(contents(1)), ' - multiple'));
-        end
-    end
-    
-    
-    if handles.current_display == 1
-        if singular == 1
-            handles.data_top = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-            handles.data_top = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+2),:,3*(handles.current_page-1)+2); % dummy
-        end
-        handles.current_display = 2;
-    else
-        if singular == 1
-            handles.data_btm = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-            handles.data_btm = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+2),:,3*(handles.current_page-1)+2); % dummy
-        end        
-        handles.current_display = 1;
-    end
-        
-    
-guidata(hObject, handles);
 
 
 
-function details3_Callback(hObject, eventdata, handles)
 
-
-    contents = cellstr(get(handles.list3,'String'));
-    contents = str2double(contents{get(handles.list3,'Value')});
-
-    singular = 1;
-    if isnan(contents) == 1
-        singular = 0;
-        contents = cellstr(get(handles.list3,'String'));
-        contents = str2double(contents);
-        contents = contents(2:length(contents));
-    end
-    
-    index_for_png = zeros(1,length(contents));
-    for i = 1:length(contents)
-        for j = 1:length(handles.snap_nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                index_for_png(i) = j;
-            end
-        end
-    end
-    
-    axes_handles1 = [handles.png4, handles.png5];
-    axes_handles2 = [handles.back4, handles.back5];
-    pca_invis = [handles.pca_base_1, handles.pca_base_2];
-    pca_overlay = [handles.pca_overlay_1, handles.pca_overlay_2];
-    
-    for j = 1:size(index_for_png, 2)
-        if j == 1
-            temp_handle = image(axes_handles1(handles.current_display), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            hold(axes_handles1(handles.current_display), 'on');
-        else
-            temp_handle = image(axes_handles1(handles.current_display), handles.png_stuff{index_for_png(1,j),1}, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-            set(temp_handle, 'AlphaData', handles.png_stuff{index_for_png(1,j),3});
-        end
-    end
-    
-    hold(axes_handles1(handles.current_display), 'off');
-    
-        set(axes_handles1(handles.current_display),'visible','off');
-        set(axes_handles1(handles.current_display), 'XLimSpec', 'Tight');
-        set(axes_handles1(handles.current_display), 'YLimSpec', 'Tight');
-    
-        for j = 1:size(index_for_png, 2)
-            if j == 1
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
-                hold(axes_handles2(handles.current_display), 'on');
-            else
-                plot(axes_handles2(handles.current_display), 1:64, handles.sieved_means_preserved(1,:,index_for_png(1,j)), 'r', 'LineWidth', 2);
-            end            
-        end
-        
-        hold(axes_handles2(handles.current_display), 'off');
-        
-        ylim(axes_handles2(handles.current_display), [handles.min_min, handles.max_max]);
-        xlim(axes_handles2(handles.current_display), [0 64]);
-        set(axes_handles2(handles.current_display), 'Color', 'None');    
-        
-        
-        %%%%%%% pca part %%%%%%%%
-        
-        out = pca_siever(handles, contents, handles.pca_score);
-        
-        pca_invis(handles.current_display).CData = [0 1 0];
-        
-        pca_overlay(handles.current_display).XData = out(:,1);
-        pca_overlay(handles.current_display).YData = out(:,2);
-        
-        %%%%% end pca part %%%%%%
-
-        %%%% start autocorr/spikerates part %%%%
-        
-        axes_sr = [handles.sr1, handles.sr2];
-        axes_ac = [handles.ac1, handles.ac2];
-         
-        
-        curr_spikes = NaN(length(handles.spikes_data.assignedNegative), 64);
-        curr_times = NaN(1,length(handles.spikes_data.assignedNegative));
-        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
-        count = 1;
-        for i = 1:length(handles.spikes_data.assignedNegative)
-            for j = 1:length(contents)
-                if handles.spikes_data.assignedNegative(i) == contents(j)
-                    curr_spikes(count,:) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
-                    curr_times(1,count) = handles.spikes_data.allSpikeInds(i);
-                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
-                    count = count + 1;
-                    break;
-                end
-            end
-        end
-        curr_spikes = curr_spikes(1:count-1,:);
-        curr_times = curr_times(1,1:count-1);
-        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
-       
-         
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-         
-        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
-         
-
-        time_tracker = 1;
-        counter = 0;
-        amp_summer = 0;
-        index = 1;
-        total_length = length(handles.hp_trace);
-        total_curr_spikes = length(curr_times);
-        amp_data = zeros(floor(total_length/(30000*100)),1);
-        sr_data = zeros(floor(total_length/(30000*100)),1);
-        data_index = 1;
-
-        while time_tracker < total_length
-            if index > total_curr_spikes
-                sr_data(data_index) = 0;
-                amp_data(data_index) = 0;
-                data_index = data_index + 1;
-                time_tracker = time_tracker + 30000*100;
-            elseif curr_times(index) < time_tracker + 30000*100
-                amp_summer = amp_summer + curr_spikes(index,24);
-                counter = counter + 1;
-            else
-                sr_data(data_index) = counter/100;
-                if counter ~= 0
-                    amp_data(data_index) = double(amp_summer)/counter;
-                else
-                    amp_data(data_index) = 0;
-                end
-                time_tracker = time_tracker + 30000*100;
-                data_index = data_index + 1;
-                amp_summer = 0;
-                counter = 0;
-            end 
-            index = index + 1;
-        end
-
-        time_axis = linspace(0,total_length/30000,length(sr_data)); 
-         
-        axes(axes_sr(handles.current_display));
-        cla reset;
-        yyaxis left
-        plot(time_axis, sr_data);
-        ylim([min(sr_data)-0.005, max(sr_data)+0.005]);
-        hold on
-        yyaxis right
-        plot(time_axis, amp_data, '--');
-        ylim([min(amp_data)-5, max(amp_data)+5]);
-        yyaxis left
-        hold off
-        xlim([0,(time_axis(end)+5)]);
-        
-        Cxx(1) = [];
-
-        tvect = tvect(floor(length(tvect)/2):length(tvect));
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        tvect = tvect(2:100);
-        Cxx = Cxx(2:100);
-        
-        plot(axes_ac(handles.current_display), tvect, Cxx.');
-        
-        %%%%% end autocorr/spikerates part %%%%%        
-
-    long_arr = [handles.long1, handles.long2];
-    long_arr_l = [handles.long1_left, handles.long2_left];
-    long_arr_r = [handles.long1_right, handles.long2_right];
-    
-           
-    cla(long_arr(handles.current_display));
-    set(long_arr(handles.current_display),'visible','off');
-
-    set(long_arr_l(handles.current_display), 'visible', 'off');
-    set(long_arr_r(handles.current_display), 'visible', 'off');
-    
-    if handles.current_display == 1
-        handles.long1_stat = 0;
-    else
-        handles.long2_stat = 0;
-    end     
-    
-    
-    contents
-    
-    if length(contents) == 1
-        if handles.current_display == 1
-            set(handles.uipanel1, 'Title', num2str(contents(1)));
-        else
-            set(handles.uipanel2, 'Title', num2str(contents(1)));
-        end
-    else
-        if handles.current_display == 1
-            set(handles.uipanel1, 'Title', strcat(num2str(contents(1)), ' - multiple'));
-        else
-            set(handles.uipanel2, 'Title', strcat(num2str(contents(1)), ' - multiple'));
-        end
-    end
-    
-    if handles.current_display == 1
-        if singular == 1
-            handles.data_top = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-            handles.data_top = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+3),:,3*(handles.current_page-1)+3); % dummy
-        end
-        handles.current_display = 2;
-    else
-        if singular == 1
-            handles.data_btm = handles.sieved_long_preserved(1:handles.counter_list_preserved(index_for_png(1)),:,index_for_png(1));
-        else
-            handles.data_btm = handles.sieved_long(1:handles.counter_list(3*(handles.current_page-1)+3),:,3*(handles.current_page-1)+3); % dummy
-        end        
-        handles.current_display = 1;
-    end        
-        
-    
-guidata(hObject, handles);
-
-
-
-% --- Executes on button press in merge2.
-function merge2_Callback(hObject, eventdata, handles)
-
-    handles.candidates(2 + 3*(handles.current_page - 1)) = get(handles.merge2,'Value');
-    handles = merge_plot1(hObject, eventdata, handles);
-    handles = merge_plot2(hObject, eventdata, handles);
-    handles = merge_plot34(hObject, eventdata, handles);
-    
-guidata(hObject, handles);
-
-
-function noise2_Callback(hObject, eventdata, handles)
-
-    contents = cellstr(get(handles.list2,'String'));
-    contents = str2double(contents);
-    contents = contents(2:length(contents));
-    
-    for i = 1:length(contents)
-        for j = 1:length(handles.snap_nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                handles.noise_status(j) = get(handles.noise2,'Value');
-                if handles.noise_status(j) == 1
-                    set(handles.merge2,'visible','off');
-                else
-                    set(handles.merge2,'visible','on');
-                end
-            end
-        end
-    end
-
-%     refresher(hObject, eventdata, handles);
-    
-guidata(hObject, handles);
-
-function noise3_Callback(hObject, eventdata, handles)
-
-    contents = cellstr(get(handles.list3,'String'));
-    contents = str2double(contents);
-    contents = contents(2:length(contents));
-    
-    for i = 1:length(contents)
-        for j = 1:length(handles.snap_nrAssigned(:,1))
-            if handles.snap_nrAssigned(j,1) == contents(i)
-                handles.noise_status(j) = get(handles.noise3,'Value');
-                if handles.noise_status(j) == 1
-                    set(handles.merge3,'visible','off');
-                else
-                    set(handles.merge3,'visible','on');
-                end
-            end
-        end
-    end
-    
-    
-%     refresher(hObject, eventdata, handles);
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in merge3.
-function merge3_Callback(hObject, eventdata, handles)
-
-    handles.candidates(3 + 3*(handles.current_page - 1)) = get(handles.merge3,'Value');
-    
-    handles = merge_plot1(hObject, eventdata, handles);
-    handles = merge_plot2(hObject, eventdata, handles);
-    handles = merge_plot34(hObject, eventdata, handles);
-    
-guidata(hObject, handles);
-
-
-% --- Executes on button press in merge.
+% % --- Executes on button press in merge.
 function merge_Callback(hObject, eventdata, handles)
 
     disp('executing merger');
@@ -1521,46 +1206,34 @@ function [handles] = refresher(hObject, eventdata, handles)
     handles.distinct_plots = temp_arr;
     handles.distinct_plot_count = length(temp_arr);
     
-    sieved = NaN(length(handles.spikes_data.assignedNegative), 64, handles.distinct_plot_count);
-    counter_list = ones(1,length(handles.distinct_plots));
-    
-    for i = 1:length(handles.spikes_data.assignedNegative)
-        for j = 1:length(handles.snap_nrAssigned)
-            if handles.spikes_data.assignedNegative(i) == handles.snap_nrAssigned(j,1)
-                for k = 1:length(handles.distinct_plots)
-                    if handles.distinct_plots(k) == handles.spikes_data.nrAssigned(j,1)
-                        sieved(counter_list(k),:,k) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
-                        handles.sieved_long(counter_list(k),:,k) = handles.hp_trace(handles.spikes_data.allSpikeInds(i)-499:handles.spikes_data.allSpikeInds(i)+500);
-                        if max(sieved(counter_list(k),:,k)) > handles.max_max
-                            handles.max_max = max(sieved(counter_list(k),:,k));
-                        end
-                        if min(sieved(counter_list(k),:,k)) < handles.min_min
-                            handles.min_min = min(sieved(counter_list(k),:,k));
-                        end
-
-                        counter_list(k) = counter_list(k) + 1;
-                        break;
-                    end
-                end
+    new_counter = zeros(1,handles.distinct_plot_count);
+    new_means = zeros(64,handles.distinct_plot_count);
+    for i = 1:length(handles.distinct_plots)
+        sum = zeros(64,1);
+        weight = 0;
+        for j = 1:length(handles.spikes_data.nrAssigned(:,1))
+            if handles.spikes_data.nrAssigned(j,1) == handles.distinct_plots(i)
+                sum = sum + handles.counter_list_preserved(j)*handles.sieved_means_preserved(:,j);
+                weight = weight + handles.counter_list_preserved(j);
             end
         end
+        
+        new_means(:,i) = sum/weight;
+        new_counter(i) = weight;
     end
-    for i = 1:length(counter_list)
-        counter_list(i) = counter_list(i) - 1;
-    end
-    handles.counter_list = counter_list;
     
-    handles.sieved = sieved;
-    handles.sieved_means = nanmean(handles.sieved, 1);
+    handles.sieved_means = new_means;
+    handles.counter_list = new_counter;
+    
     
     handles.candidates = zeros(1,handles.distinct_plot_count);
     handles.total_pages = ceil(handles.distinct_plot_count/3);
     handles.current_page = 1;
     
+    set(handles.list1, 'Value', 1);
+    set(handles.list1,'String',[]);
+    
     handles = page_plots(hObject, eventdata, handles);
-    set(handles.merge1, 'value', 0);
-    set(handles.merge2, 'value', 0);
-    set(handles.merge3, 'value', 0);
     
     handles.pca_base_1.CData = [1 1 1];
     handles.pca_base_2.CData = [1 1 1];
@@ -1573,13 +1246,15 @@ function [handles] = refresher(hObject, eventdata, handles)
     handles.pca_overlay_3.XData = NaN(size(handles.pca_score,1),1);
     handles.pca_overlay_3.YData = NaN(size(handles.pca_score,1),1);
     
-    right_plots = [handles.back4, handles.back5, handles.back6, handles.png4, handles.png5, handles.png6, handles.ac1, handles.ac2, handles.ac3];
+    right_plots = [handles.back4, handles.back5, handles.bg3, handles.png4, handles.png5, handles.png6, handles.ac1, handles.ac2, handles.ac3, handles.ac1t, handles.ac2t, handles.ac3t];
     for i = 1:length(right_plots)
         cla(right_plots(i));
     end
     cla(handles.sr1,'reset');
     cla(handles.sr2,'reset');
     cla(handles.sr3,'reset');
+    
+    handles.current_highlight_details = 0;
 
 guidata(hObject, handles);
     
@@ -1794,22 +1469,42 @@ guidata(hObject, handles);
 % --- Executes on button press in toggle2.
 function toggle2_Callback(hObject, eventdata, handles)
 
+    disp('plotting');
+
     if handles.long2_stat == 0
         handles.long2_stat = 1;
         set(handles.long2,'visible','on');
         set(handles.long2_left,'visible','on');
         set(handles.long2_right,'visible','on');
-        handles.number_btm = 1;
-        handles.long2_plot = plot(handles.long2, handles.data_btm(handles.number_btm,:), 'visible', 'on');
+        
+        handles.long2_plot = plot(handles.long2, handles.data_bot, 'visible', 'on');
         hold(handles.long2, 'on');
-        plot(handles.long2, [350 350], [max(handles.data_btm(handles.number_btm,:)), min(handles.data_btm(handles.number_btm,:))], '--');
-        plot(handles.long2, [650 650], [max(handles.data_btm(handles.number_btm,:)), min(handles.data_btm(handles.number_btm,:))], '--');
+        text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
+                    
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
+                    if x_pos ~= 500
+                        disp(x_pos);
+                    end
+                    plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
+                    text(handles.long2, x_pos,min(handles.data_bot) + 0.25*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end        
+
         plot(handles.long2, [0 1000], [0 0]);
+        plot(handles.long2, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long2, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
         hold(handles.long2, 'off');
     else
         handles.long2_stat = 0;
-        cla(handles.long2);
         set(handles.long2,'visible','off');
+        cla(handles.long2);
         set(handles.long2_left,'visible','off');
         set(handles.long2_right,'visible','off');
     end
@@ -1821,16 +1516,36 @@ guidata(hObject, handles);
 % --- Executes on button press in toggle1.
 function toggle1_Callback(hObject, eventdata, handles)
 
+    disp('plotting');
+
     if handles.long1_stat == 0
         handles.long1_stat = 1;
         set(handles.long1,'visible','on');
         set(handles.long1_left,'visible','on');
         set(handles.long1_right,'visible','on');
-        handles.number_top = 1;
-        handles.long1_plot = plot(handles.long1, handles.data_top(handles.number_top,:), 'visible', 'on');
+        
+        handles.long1_plot = plot(handles.long1, handles.data_top, 'visible', 'on');
         hold(handles.long1, 'on');
-        plot(handles.long1, [350 350], [max(handles.data_top(handles.number_top,:)), min(handles.data_top(handles.number_top,:))], '--');
-        plot(handles.long1, [650 650], [max(handles.data_top(handles.number_top,:)), min(handles.data_top(handles.number_top,:))], '--');
+        text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
+                    
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
+                    if x_pos ~= 500
+                        disp(x_pos);
+                    end
+                    plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
+                    text(handles.long1, x_pos,min(handles.data_top) + 0.25*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end
+        
+        plot(handles.long1, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long1, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
         plot(handles.long1, [0 1000], [0 0]);
         hold(handles.long1, 'off');
     else
@@ -1847,33 +1562,90 @@ guidata(hObject, handles);
 % --- Executes on button press in long2_left.
 function long2_left_Callback(hObject, eventdata, handles)
 
-    if handles.number_btm > 1
-        handles.number_btm = handles.number_btm - 1;
-    end
+    [ts, handles.updated_index_bot] = search_ts_backward(handles, handles.updated_index_bot, handles.contents_bot);
+       
+    handles.data_bot = ts;
+        handles.long2_plot = plot(handles.long2, handles.data_bot, 'visible', 'on');
+        hold(handles.long2, 'on');
+        text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
+                    plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
+                    text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end
 
-    set(handles.long2_plot, 'YData', handles.data_btm(handles.number_btm,:));
+        plot(handles.long2, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long2, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long2, [0 1000], [0 0]);
+        hold(handles.long2, 'off');    
+    
 
 guidata(hObject, handles);
 
 % --- Executes on button press in long2_right.
 function long2_right_Callback(hObject, eventdata, handles)
 
-    if handles.number_btm < 100
-        handles.number_btm = handles.number_btm + 1;
-    end
-
-    set(handles.long2_plot, 'YData', handles.data_btm(handles.number_btm,:));
+    [ts, handles.updated_index_bot] = search_ts_forward(handles, handles.updated_index_bot, handles.contents_bot);
+       
+    handles.data_bot = ts;
+        handles.long2_plot = plot(handles.long2, handles.data_bot, 'visible', 'on');
+        hold(handles.long2, 'on');
+        text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
+                    plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
+                    text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end
+        
+        plot(handles.long2, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long2, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long2, [0 1000], [0 0]);
+        hold(handles.long2, 'off');
     
 guidata(hObject, handles);
 
 % --- Executes on button press in long1_left.
 function long1_left_Callback(hObject, eventdata, handles)
     
-    if handles.number_top > 1
-        handles.number_top = handles.number_top - 1;
-    end
+    
+    [ts, handles.updated_index_top] = search_ts_backward(handles, handles.updated_index_top, handles.contents_top);
+       
+    handles.data_top = ts;
+        handles.long1_plot = plot(handles.long1, handles.data_top, 'visible', 'on');
+        hold(handles.long1, 'on');
+        text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
+                    plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
+                    text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end
 
-    set(handles.long1_plot, 'YData', handles.data_top(handles.number_top,:));
+        plot(handles.long1, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long1, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long1, [0 1000], [0 0]);
+        hold(handles.long1, 'off');    
+    
 
 guidata(hObject, handles);
 
@@ -1881,15 +1653,65 @@ guidata(hObject, handles);
 % --- Executes on button press in long1_right.
 function long1_right_Callback(hObject, eventdata, handles)
 
-    if handles.number_top < 100
-        handles.number_top = handles.number_top + 1;
-    end
+    [ts, handles.updated_index_top] = search_ts_forward(handles, handles.updated_index_top, handles.contents_top);
+       
+    handles.data_top = ts;
+        handles.long1_plot = plot(handles.long1, handles.data_top, 'visible', 'on');
+        hold(handles.long1, 'on');
+        text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
+        
+        for j = 1:length(handles.spikes_data.allSpikeInds)
+            if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
+                if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
+                    x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
+                    plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
+                    text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                else
+                    break;
+                end
+            end
+        end
 
-    set(handles.long1_plot, 'YData', handles.data_top(handles.number_top,:));
+        plot(handles.long1, [0 1000], [5*handles.spikes_data.stdEstimateOrig 5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);
+        plot(handles.long1, [0 1000], [-5*handles.spikes_data.stdEstimateOrig -5*handles.spikes_data.stdEstimateOrig], '--', 'LineWidth', 2);        
+        plot(handles.long1, [0 1000], [0 0]);
+        hold(handles.long1, 'off');
 
 guidata(hObject, handles);
 
 
+function noise1_Callback(hObject, eventdata, handles)
 
+    contents = cellstr(get(handles.list1,'String'));
+    contents = str2double(contents);
+    contents = contents(2:length(contents));
+    
+    for i = 1:length(contents)
+        for j = 1:length(handles.snap_nrAssigned(:,1))
+            if handles.snap_nrAssigned(j,1) == contents(i)
+                handles.noise_status(j) = get(handles.noise1,'Value');
+                if handles.noise_status(j) == 1
+                    if handles.candidates(j) == 1
+                        handles.candidates(j) = 0;
+                        cla(handles.bg3);
+                        cla(handles.png6); 
+                        set(handles.pca_base_3, 'visible', 'off');
+                        set(handles.pca_overlay_3, 'visible', 'off');
+                        cla(handles.ac3, 'reset');
+                        cla(handles.sr3, 'reset');        
 
-
+                        if sum(handles.candidates) > 0
+                            handles = merge_plot1(hObject, eventdata, handles);
+                            handles = merge_plot2(hObject, eventdata, handles);
+                            handles = merge_plot34(hObject, eventdata, handles);
+                        end
+                    end
+                end
+            end
+        end
+    end
+ 
+    handles = page_plots(hObject, eventdata, handles);
+    handles = update_colors(hObject, eventdata, handles);
+        
+guidata(hObject, handles);

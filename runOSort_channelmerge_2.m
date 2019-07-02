@@ -23,7 +23,8 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
     
     splits = strsplit(string(channel_name), ' ');
 
-        
+    transferred = 0;
+    
     for i = 1:size(channels_identified, 1)
         
         if string(channel_name) == 'all'
@@ -41,9 +42,10 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
             command = strcat('ssh -p 8398 hippocampus@cortex.nus.edu.sg ''', path_to_make, '''');
             unix(command);
             
-            if i == 1
+            if transferred == 0
                 unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
                 unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+                transferred = 1;
             end
             
             disp(channels_identified{i,1});
@@ -79,9 +81,10 @@ function [output] = runOSort_channelmerge_2(full_day_path, channel_name)
                     command = strcat('ssh -p 8398 hippocampus@cortex.nus.edu.sg ''', path_to_make, '''');
                     unix(command);
 
-                    if i == 1
+                    if transferred == 0
                         unix(strcat('scp -P 8398 ../../appearances.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
                         unix(strcat('scp -P 8398 ../../appearances.csv hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/', day_path{1,length(day_path)-3}, '/', day_path{1,length(day_path)-2}));
+                        transferred = 1;
                     end
                     
                     disp('entered');
