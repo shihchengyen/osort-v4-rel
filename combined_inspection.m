@@ -1435,9 +1435,15 @@ function export1_Callback(hObject, eventdata, handles)
         
         for j = 1:length(to_create)
             
-            disp(strcat('cell',num2str(to_create(j))));
-            mkdir(strcat('cell',num2str(to_create(j))));
-            cd(strcat('cell',num2str(to_create(j))));
+            if j < 10
+                string_temp = strcat('cell0',num2str(j));
+            else
+                string_temp = strcat('cell',num2str(j));
+            end               
+            
+            disp(string_temp); %num2str(to_create(j))
+            mkdir(string_temp);
+            cd(string_temp);
             
             timestamps = zeros(1,counters(i)-1);
             waves = NaN(counters(i)-1,64);
