@@ -156,8 +156,13 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.noiseless_spikes = handles.noiseless_spikes(1:index - 1,:);
 
     disp('pca start');
+    
     handles.peak_values = max(abs(handles.noiseless_spikes), [], 2);
     [~, handles.pca_score, ~] = pca(handles.noiseless_spikes);
+    
+%     [handles.L_R, handles.L, handles.IsolDist, handles.pca_score] = computeLratioALLclusters(handles.noiseless_spikes,handles.removing_noise_index,handles.spikes_data.nrAssigned(:,1));
+%     disp(handles.L_R);
+%     disp(handles.IsolDist);
     
     handles.pca_base_1 = scatter(handles.pca1, handles.pca_score(:,1), handles.pca_score(:,2));
     handles.pca_base_2 = scatter(handles.pca2, handles.pca_score(:,1), handles.pca_score(:,2));
@@ -459,7 +464,7 @@ function [handles] = merge_plot2(hObject, eventdata, handles)
         contents = contents(1:count-1);
 
 
-    out,outt = pca_siever(handles, contents, handles.pca_score);
+    [out, outt, IsolDist, L_R] = pca_siever(handles, contents, handles.pca_score);
 
     set(handles.pca_base_3, 'visible', 'on');
     set(handles.pca_overlay_3, 'visible', 'on');
@@ -473,7 +478,9 @@ function [handles] = merge_plot2(hObject, eventdata, handles)
     handles.pca_base_3t.CData = [0 1 0];
 
     handles.pca_overlay_3t.XData = outt(:,1);
-    handles.pca_overlay_3t.YData = outt(:,2);    
+    handles.pca_overlay_3t.YData = outt(:,2);  
+    
+    title(handles.pca3t, strcat('IsolDist: ', num2str(IsolDist), ' L_R: ', num2str(L_R)));
 
 
 guidata(hObject, handles);
@@ -703,8 +710,9 @@ function [handles] = details1_bot(hObject, eventdata, handles)
             
         %%%%%%% pca part %%%%%%%%
         
-        [out, outt] = pca_siever(handles, contents, handles.pca_score);
+        [out, outt, IsolDist, L_R] = pca_siever(handles, contents, handles.pca_score);
         
+        title(handles.pca2t, strcat('IsolDist: ', num2str(IsolDist), ' L_R: ', num2str(L_R))); %strcat('IsolDist: ', num2str(IsolDist), ' L_R: ', num2str(L_R))
         pca_invis(2).CData = [0 1 0];
                 
         pca_overlay(2).XData = out(:,1);
@@ -908,7 +916,8 @@ function details1_Callback(hObject, eventdata, handles)
             
         %%%%%%% pca part %%%%%%%%
         
-        [out, outt] = pca_siever(handles, contents, handles.pca_score);
+        [out, outt, IsolDist, L_R] = pca_siever(handles, contents, handles.pca_score);
+        title(handles.pca1t, strcat('IsolDist: ', num2str(IsolDist), ' L_R: ', num2str(L_R)));
         
         pca_invis(handles.current_display).CData = [0 1 0];
 
@@ -1103,11 +1112,13 @@ function [ts, updated_index] = search_ts_backward(handles, current_index, target
     
 
 
-function [sieved_pca, sieved_pcat] = pca_siever(handles, target_arr, full_pca)
+function [sieved_pca, sieved_pcat, IsolDist, L_R] = pca_siever(handles, target_arr, full_pca)
 
 sieved_pca = NaN(size(full_pca,1),2);    
 sieved_pcat = NaN(size(full_pca,1),2);
-    
+pca3 = full_pca(:,1:3);
+idx = NaN(1,size(full_pca,1));
+
 counter = 1;
 for i = 1:length(handles.removing_noise_index)
     for j = 1:length(target_arr)
@@ -1115,12 +1126,16 @@ for i = 1:length(handles.removing_noise_index)
             sieved_pca(counter,:) = full_pca(i,1:2);
             sieved_pcat(counter,1) = full_pca(i,1);
             sieved_pcat(counter,2) = handles.peak_values(i);
+            idx(counter) = i;
             counter = counter + 1;
             break;
         end
     end
 end
+idx = idx(1:counter-1);
 
+IsolDist = IsolationDistance(pca3, idx);
+[L,L_R]=L_Ratio(pca3,idx); %Mclust function 
 
 
 function kick1_Callback(hObject, eventdata, handles)
@@ -1344,6 +1359,11 @@ function n = convertToSpiketrain(timestamps, binsize)
 % --- Executes on button press in export1.
 function export1_Callback(hObject, eventdata, handles)
     
+    new = handles.spikes_data.nrAssigned;
+    orig = handles.snap_nrAssigned;
+    noise_labels = handles.noise_status;
+    save('changes.mat', 'new', 'orig', 'noise_labels');
+
     assignedNegative_final = handles.spikes_data.assignedNegative;
     for i = 1:length(handles.spikes_data.assignedNegative)
         for j = 1:length(handles.snap_nrAssigned(:,1))
@@ -1462,7 +1482,7 @@ function export1_Callback(hObject, eventdata, handles)
             strain.timestamps = timestamps;
             strain.spikeForm = nanmean(waves, 1);
             save('spiketrain.mat', '-struct', 'strain');            
-            
+            writetable(array2table(timestamps), 'spiketrain.csv');
             cd(temp2);
         end
     end

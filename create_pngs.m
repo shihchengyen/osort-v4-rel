@@ -19,13 +19,13 @@ function create_pngs(current_path)
     disp(handles.spikes_data.nrAssigned);
 
     sieved = NaN(length(handles.spikes_data.assignedNegative), 64, length(handles.spikes_data.nrAssigned));
-    counter_list = ones(1,length(handles.spikes_data.nrAssigned));
+    counter_list = ones(1,length(handles.spikes_data.nrAssigned(:,1)));
 
     max_max = 0;
     min_min = 0;
     
     for i = 1:length(handles.spikes_data.assignedNegative)
-        for j = 1:length(handles.spikes_data.nrAssigned)
+        for j = 1:length(handles.spikes_data.nrAssigned(:,1))
             if handles.spikes_data.assignedNegative(i) == handles.spikes_data.nrAssigned(j,1)
                 for k = 1:length(handles.spikes_data.nrAssigned(:,1))
                     if handles.spikes_data.nrAssigned(k,1) == handles.spikes_data.nrAssigned(j,1)
@@ -50,8 +50,8 @@ function create_pngs(current_path)
     end
 
     sieved_means = nanmean(sieved, 1);
-    meandata = cell(4, length(handles.spikes_data.nrAssigned));
-    for i = 1:length(handles.spikes_data.nrAssigned)
+    meandata = cell(4, length(handles.spikes_data.nrAssigned(:,1)));
+    for i = 1:length(handles.spikes_data.nrAssigned(:,1))
         meandata{1,i} = sieved_means(1,:,i);
         meandata{2,i} = counter_list(i);
     end
@@ -64,8 +64,10 @@ function create_pngs(current_path)
     ax1 = axes('Parent', fig1);
 
     for i = 1:length(counter_list)
-
-
+        
+        disp(size(counter_list));
+        disp(size(sieved));
+        disp(i);
         cluster1 = plot(ax1, 1:64, sieved(1:counter_list(i),:,i), '-', 'Color', [0 0 0 0.05]);
         hold(ax1,'on');
         cluster2 = plot(ax1, [0 64], [0 0], '-.', 'Color', [0 0 0], 'LineWidth', 3);

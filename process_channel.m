@@ -81,7 +81,9 @@ function [output] = process_channel(current_path)
     
     command = 'scp -P 8398 -r oSort pngs start_times.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/';
     command = strcat(command, cut{1,length(cut)-2}, '/session_merged/', cut{1,length(cut)}, '/', channel_name);
-    unix(command);
+    [status, result] = unix(command);
+    disp(status);
+    disp(result);
     
     unix('rm -r oSort');
     unix('rm start_times.mat');
