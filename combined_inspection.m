@@ -59,7 +59,9 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     folder_name = dir();
     cd(folder_name(length(folder_name)).name);
     handles.spikes_data = load('P1_sorted_new.mat');
-    handles.spikes_data.nrAssigned = flip(handles.spikes_data.nrAssigned);
+    if size(handles.spikes_data.nrAssigned, 1) ~= 1
+        handles.spikes_data.nrAssigned = flip(handles.spikes_data.nrAssigned);
+    end
     cd(channel_path);
 
     disp(handles.spikes_data.nrAssigned);
@@ -68,7 +70,7 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     disp('checkmark');
 
     handles.snap_nrAssigned = handles.spikes_data.nrAssigned;
-    handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned));
+    handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned(:,1)));
     
     temp_arr = handles.spikes_data.nrAssigned(:,1);
     temp_arr = unique(temp_arr, 'stable');
@@ -76,8 +78,6 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.distinct_plots = temp_arr;
     handles.distinct_plot_count = length(temp_arr);
 
-    disp('sieve timing start');
-    
     handles.meandata = load('./pngs/meandata.mat');
     handles.meandata = handles.meandata.meandata;
 
@@ -87,10 +87,79 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.sieved_means = cell2mat(handles.meandata(1,:)');
     handles.sieved_means = flip(handles.sieved_means);
     handles.sieved_means = handles.sieved_means';
-    size(handles.sieved_means)
+%     size(handles.sieved_means)
     handles.min_min = handles.meandata{3,1};
     handles.max_max = handles.meandata{4,1};
     handles.contents_top = [0 0];
+    
+    % suggestions start
+    
+    for i = 1:length(handles.noise_status)
+        average_data = handles.sieved_means(:,i);
+        diff = abs(mean(average_data(1:5)) - mean(average_data(60:64)));
+        if diff > 0.3*(max(average_data) - min(average_data))
+            handles.noise_status(i) = 1;
+        elseif diff > 3*handles.spikes_data.stdEstimateOrig
+            handles.noise_status(i) = 1;
+        end
+    end
+    
+    disp(handles.noise_status);
+    
+    for i = 1:length(handles.noise_status)
+        average_data = handles.sieved_means(:,i);
+%         average_data = average_data(7:length(average_data));
+%         average_data = movmean(average_data, 3);
+        [pks, locs, w, p] = findpeaks(average_data);
+
+        max_ind = 1;
+        max_pk = 0;
+        min_ind = 1;
+        min_pk = 0;
+        for j = 1:length(pks)
+            if pks(j) > max_pk
+                max_pk = pks(j);
+                max_ind = locs(j);
+            end
+        end
+        
+        for j = 1:length(average_data)
+            if average_data(j) < min_pk
+                min_pk = average_data(j);
+                min_ind = j;
+            end
+        end
+
+        trigger = 0;
+        
+        
+        if min_ind > max_ind
+            for j = 1:length(locs)
+                if locs(j) >= max_ind && trigger == 0
+                    trigger = 1;
+                elseif trigger == 1 && locs(j) < min_ind
+                    if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
+                        handles.noise_status(i) = 1;
+                        break;
+                    end
+                end
+            end
+        else
+            for j = 1:length(locs)
+                if locs(j) >= min_ind && locs(j) < max_ind
+                    if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
+                        handles.noise_status(i) = 1;
+                        break;
+                    end
+                end
+            end
+        end
+
+    end    
+    
+    disp(handles.noise_status);
+    
+    % suggestions end
     
     handles.sieved_means_preserved = handles.sieved_means;
     handles.counter_list_preserved = handles.counter_list;
@@ -107,8 +176,6 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     cla(handles.bg3);
     set(handles.bg3,'visible','off');
     set(handles.bg3,'xtick',[]);    
-    
-    disp('sieve timing end');
     
     handles.candidates = zeros(1,handles.distinct_plot_count);
     
@@ -528,9 +595,9 @@ function [handles] = merge_plot34(hObject, eventdata, handles)
        
          
         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-         
+        
         [~,~,tvect,Cxx] = psautospk(spike_train, 1);
-         
+%         [tvect, Cxx, ~] = autocorr_2(spike_train);
 
         time_tracker = 1;
         counter = 0;
@@ -752,9 +819,9 @@ function [handles] = details1_bot(hObject, eventdata, handles)
        
          
         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-         
+        
         [~,~,tvect,Cxx] = psautospk(spike_train, 1);
-         
+%         [tvect, Cxx, ~] = autocorr_2(spike_train);
 
         time_tracker = 1;
         counter = 0;
@@ -958,9 +1025,9 @@ function details1_Callback(hObject, eventdata, handles)
        
          
         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-         
+        
         [~,~,tvect,Cxx] = psautospk(spike_train, 1);
-         
+%         [tvect, Cxx, ~] = autocorr_2(spike_train); 
 
         time_tracker = 1;
         counter = 0;
@@ -1495,8 +1562,6 @@ guidata(hObject, handles);
 % --- Executes on button press in toggle2.
 function toggle2_Callback(hObject, eventdata, handles)
 
-    disp('plotting');
-
     if handles.long2_stat == 0
         handles.long2_stat = 1;
         set(handles.long2,'visible','on');
@@ -1512,9 +1577,6 @@ function toggle2_Callback(hObject, eventdata, handles)
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
                     
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
-                    if x_pos ~= 500
-                        disp(x_pos);
-                    end
                     plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
                     text(handles.long2, x_pos,min(handles.data_bot) + 0.25*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
                 else
@@ -1542,8 +1604,6 @@ guidata(hObject, handles);
 % --- Executes on button press in toggle1.
 function toggle1_Callback(hObject, eventdata, handles)
 
-    disp('plotting');
-
     if handles.long1_stat == 0
         handles.long1_stat = 1;
         set(handles.long1,'visible','on');
@@ -1559,9 +1619,6 @@ function toggle1_Callback(hObject, eventdata, handles)
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
                     
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
-                    if x_pos ~= 500
-                        disp(x_pos);
-                    end
                     plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
                     text(handles.long1, x_pos,min(handles.data_top) + 0.25*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
                 else
@@ -1741,3 +1798,14 @@ function noise1_Callback(hObject, eventdata, handles)
     handles = update_colors(hObject, eventdata, handles);
         
 guidata(hObject, handles);
+
+
+
+
+
+
+
+
+
+
+
