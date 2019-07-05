@@ -1,0 +1,18 @@
+universe     = vanilla
+Executable   = /Applications/MATLAB_R2016b.app/bin/matlab 
+Arguments    = -nodisplay -nosplash -r setPath;path;RunOSort(pwd);exit
+Log          = /Volumes/Users/kimtae55/condor/distro.$(Cluster).$(Process).log
+Output       = /Volumes/Users/kimtae55/condor/distro.$(Cluster).$(Process).out
+Error        = /Volumes/Users/kimtae55/condor/distro.$(Cluster).$(Process).err
+RunAsOwner	 = FALSE
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = False
+getenv = True
+transfer_input_files = $ENV(GITHUB_MATLAB)/Hippocampus, $ENV(GITHUB_MATLAB)/DPV, $ENV(GITHUB_MATLAB)/newNpt, $ENV(GITHUB_MATLAB)/neuroshare, $ENV(GITHUB_MATLAB)/hmmscripts, $ENV(GITHUB_MATLAB)/hmmsort.py, $ENV(GITHUB_MATLAB)/osort-v4-rel, rplraw.mat, $ENV(GITHUB_MATLAB)/setPath.m
+transfer_output_files = oSort
+stream_error = True
+stream_output = True
+request_memory = 2 GB
+
+Queue 1
