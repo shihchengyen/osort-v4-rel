@@ -61,7 +61,7 @@ if thresholdMethod==1
 
 else
     thres=stdEstimate;
-    thresMerge = 4; % HM edit
+    thresMerge = 3; % HM edit
 %     thresMerge=4;  %how many std appart for projection test
     disp(['Threshold method: exact Chi2. Threshold is: ' num2str(thres)]);
 end

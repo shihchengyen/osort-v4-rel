@@ -156,14 +156,31 @@ for i=startWithBlock:runs
 	spikeWaveformsOrig = spikeWaveforms; %before upsampling
         
     %upsample and re-align
+    % HM Edit - Use this if detecting spikes using peak rank
     spikeWaveforms=upsampleSpikes(spikeWaveforms);
-%     spikeWaveforms = realigneSpikes(spikeWaveforms, spikeTimestamps, alignMethod, stdEstimates(i),filteredSignal);  %3==type is negative, do not remove any if too much shift
-    [spikeWaveforms newTimeStamps shifted indsToKeep] = realigneSpikes(spikeWaveforms, spikeTimestamps, alignMethod, stdEstimates(i),filteredSignal);  %3==type is negative, do not remove any if too much shift
+    shifted = zeros(1,size(spikeWaveforms,1));
+    for jj = 1:size(spikeWaveforms,1)
+        spike = spikeWaveforms(jj,:);
+        % Prevent mistaking of peak at boundaries of block
+        spike_trim = spike;
+        spike_trim(1:90) = 0; spike_trim(100:end) = 0;
+        ind_peak = find(abs(spike_trim) == max(abs(spike_trim)));
+        diff = ind_peak-95;
+        if diff>0
+            spikeWaveforms(jj,:) = [spike(1+diff:end) repmat(spike(end),1,diff)];
+        elseif diff<0
+            spikeWaveforms(jj,:) = [repmat(spike(1),1,abs(diff)),spike(1:end-abs(diff))];
+        end
+        shifted(jj) = diff;
+    end
     
-    % HM Edit
-    % Make sure only usable spikes are kept
-    spikeWaveformsOrig = spikeWaveformsOrig(indsToKeep',:);
-    spikeTimestamps = newTimeStamps;
+%     % HM Edit - Use this if detecting spikes with original OSort code
+%     spikeWaveforms=upsampleSpikes(spikeWaveforms);
+%     [spikeWaveforms newTimeStamps shifted indsToKeep] = realigneSpikes(spikeWaveforms, spikeTimestamps, alignMethod, stdEstimates(i),filteredSignal);  %3==type is negative, do not remove any if too much shift
+%     % HM Edit
+%     % Make sure only usable spikes are kept
+%     spikeWaveformsOrig = spikeWaveformsOrig(indsToKeep',:);
+%     spikeTimestamps = newTimeStamps;
 
     %convert timestamps
     spikeTimestampsTmp = spikeTimestamps;
