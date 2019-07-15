@@ -232,15 +232,16 @@ for i=1:length(searchIndBorders)
             if abs(rawSignal(segment_inds(peaks_ranked(jj,2)))) > runningThres
                 covered(counterNeg,1:2) = [fromInd2 toInd2];
                 spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ;
-                spikeTimestamps(counterNeg) = fromInd+peakInd-1; % HM Edit
+                spikeTimestamps(counterNeg) = fromInd2+peakInd-1; % HM Edit
 
                 counterNeg=counterNeg+1; %how many spikes extracted so far
                 rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
                 maxCovered=toInd2;
-            end
-            % Adjust list of peaks so there are no overlapping windows
+                % Adjust list of peaks so there are no overlapping windows
 %             inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+afterPeak & peaks_ranked(:,2) > peaks_ranked(jj,2)-beforePeak)];
-            inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+22 & peaks_ranked(:,2) > peaks_ranked(jj,2)-22)];
+                inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+22 & peaks_ranked(:,2) > peaks_ranked(jj,2)-22)];
+            end
+            
 
         end
         
