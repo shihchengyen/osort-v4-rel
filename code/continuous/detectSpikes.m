@@ -238,6 +238,7 @@ for i=1:length(searchIndBorders)
                 rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
                 maxCovered=toInd2;
                 % Adjust list of peaks so there are no overlapping windows
+                % (any other peak in a 45 point time window is excluded)    
 %             inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+afterPeak & peaks_ranked(:,2) > peaks_ranked(jj,2)-beforePeak)];
                 inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+22 & peaks_ranked(:,2) > peaks_ranked(jj,2)-22)];
             end
