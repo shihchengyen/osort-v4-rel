@@ -67,9 +67,15 @@ switch ( params.samplingFreq )
         beforePeak=24;
         afterPeak=59;        
     case 30000
-        rawTraceLength=84;        
-        beforePeak=24;
-        afterPeak=59;        
+        % HM Edit - later on, the spikes get upsampled to 256 points, but
+        % if peak is left at 25, there will be a lot of realigning to do
+        % (from ~76 to 95), so I've shifted the peak here to 31
+        rawTraceLength = 84;
+        beforePeak = 30;
+        afterPeak = 53;
+%         rawTraceLength=84;        
+%         beforePeak=24;
+%         afterPeak=59;        
     otherwise
         warning(['unknown sampling freq - assuming default values. Fs is ' num2str(params.samplingFreq) ] );
         rawTraceLength=64;
@@ -117,64 +123,201 @@ toInd2=0;
 
 t1=clock;
 notSig=0;
-for i=1:length(searchInds)
-        if maxCovered >= searchInds(i)
-            continue;
-        end
+
+% HM commented out
+% for i=1:length(searchInds)
+%         if maxCovered >= searchInds(i)
+%             continue;
+%         end
+%         
+%         fromInd=searchInds(i)-beforePeak;
+%         toInd=searchInds(i)+afterPeak;
+%         if fromInd<=0 || toInd>totLength || fromInd<maxCovered
+%             continue;
+%         end
+% 
+%         spikeSignal = rawSignal( fromInd:toInd );
+%         
+%         switch ( params.peakAlignMethod )
+%             case METHOD_PEAKFIND_FINDPEAK %determine peak with standard method
+%                 peakInd=findPeak(spikeSignal, stdRawSignal, params.alignMethod);
+%             case METHOD_PEAKFIND_NONE %no peak finding
+%                 if params.detectionMethod==5  %wavelets determine their own peak time.
+%                     peakInd=beforePeak;
+%                 else
+%                     peakInd=0;
+%                 end
+%             case METHOD_PEAKFIND_POWER %use power to find peak
+%                 pSig = peakFindSignal(fromInd:toInd);                
+%                 peakInd=findPeakPower(spikeSignal, pSig);
+%             case METHOD_PEAKFIND_MTEO %use MTEO signal to find peak
+%                 pSig = peakFindSignal(fromInd:toInd);                
+%                 peakInd=findPeakMTEO(spikeSignal, pSig);
+%             otherwise
+%                 error('unknown peak detection method');
+%         end
+%         
+%         %unclear spike, ignore it.
+%         if peakInd==-1
+%             notSig=notSig+1;
+%             maxCovered=toInd;
+%             %['not sig ' num2str(notSig)]
+%             continue;
+%         end
+%         
+% %         fromInd2 = fromInd+peakInd-beforePeak;
+%         fromInd2 = fromInd+peakInd-beforePeak-1; % HM Edit
+% %         toInd2   = fromInd+peakInd+afterPeak;
+%         toInd2   = fromInd+peakInd+afterPeak-1; % HM Edit
+%         %already covered,to prevent repeats in any case
+%         if fromInd2<=0 || toInd2>length(rawSignal) || length(find(covered(:,1)==fromInd2))>0  && length(find(covered(:,2)==toInd2))>0
+%             continue;
+%         end
+%         
+%         covered(counterNeg,1:2) = [fromInd2 toInd2];
+%         spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ;
+% %         spikeTimestamps(counterNeg) = fromInd+peakInd;
+%         spikeTimestamps(counterNeg) = fromInd+peakInd-1; % HM Edit
+% 
+%         counterNeg=counterNeg+1; %how many spikes extracted so far
+%         rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
+%         maxCovered=toInd2;
+% end
+
+% HM Edit - to rank spikes within segments that exceed threshold, and
+% extract windows based on rank
+diffSearchInds = diff(searchInds);
+searchIndBorders = find(diffSearchInds>1);
+
+for i=1:length(searchIndBorders)
         
-        fromInd=searchInds(i)-beforePeak;
-        toInd=searchInds(i)+afterPeak;
-        if fromInd<=0 || toInd>totLength || fromInd<maxCovered
-            continue;
+        % Grab the signal segment that crosses threshold
+        if i == 1
+            fromInd = searchInds(1);
+            toInd = searchInds(searchIndBorders(i));
+        elseif i == size(searchIndBorders,1)
+            fromInd = searchInds(searchIndBorders(end));
+            toInd = searchInds(size(searchInds,1));
+        else
+            fromInd = searchInds(searchIndBorders(i-1)+1);
+            toInd = searchInds(searchIndBorders(i));
         end
 
         spikeSignal = rawSignal( fromInd:toInd );
         
-        switch ( params.peakAlignMethod )
-            case METHOD_PEAKFIND_FINDPEAK %determine peak with standard method
-                peakInd=findPeak(spikeSignal, stdRawSignal, params.alignMethod);
-            case METHOD_PEAKFIND_NONE %no peak finding
-                if params.detectionMethod==5  %wavelets determine their own peak time.
-                    peakInd=beforePeak;
-                else
-                    peakInd=0;
-                end
-            case METHOD_PEAKFIND_POWER %use power to find peak
-                pSig = peakFindSignal(fromInd:toInd);                
-                peakInd=findPeakPower(spikeSignal, pSig);
-            case METHOD_PEAKFIND_MTEO %use MTEO signal to find peak
-                pSig = peakFindSignal(fromInd:toInd);                
-                peakInd=findPeakMTEO(spikeSignal, pSig);
-            otherwise
-                error('unknown peak detection method');
-        end
+        % Find the local peaks (positive and negative) and rank them (HM Edit) 
+        [peaks,peak_locs] = findpeaks(abs(spikeSignal));
+        peaks_ranked = flipud(sortrows([peaks peak_locs],1)); % [amp, ind]
         
-        %unclear spike, ignore it.
-        if peakInd==-1
-            notSig=notSig+1;
-            maxCovered=toInd;
-            %['not sig ' num2str(notSig)]
-            continue;
-        end
-        
-%         fromInd2 = fromInd+peakInd-beforePeak;
-        fromInd2 = fromInd+peakInd-beforePeak-1; % HM Edit
-%         toInd2   = fromInd+peakInd+afterPeak;
-        toInd2   = fromInd+peakInd+afterPeak-1; % HM Edit
-        %already covered,to prevent repeats in any case
-        if fromInd2<=0 || toInd2>length(rawSignal) || length(find(covered(:,1)==fromInd2))>0  && length(find(covered(:,2)==toInd2))>0
-            continue;
-        end
-        
-        covered(counterNeg,1:2) = [fromInd2 toInd2];
-        spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ;
-%         spikeTimestamps(counterNeg) = fromInd+peakInd;
-        spikeTimestamps(counterNeg) = fromInd+peakInd-1; % HM Edit
+        % HM Edit - Use the following if detecting spikes using peak rank
+        % Extract exclusive windows of signal around each peak according to
+        % rank (HM Edit)
+        segment_inds = fromInd:toInd;
+        peakInd = beforePeak + 1;
+        inds_overlap = [];
+        for jj = 1:size(peaks_ranked,1)
+            % Check if this spike is overlapping with already stored spikes
+            if ismember(jj,inds_overlap)
+                continue;
+            end
+            % Align spike
+            fromInd2 = segment_inds(peaks_ranked(jj,2))-beforePeak;
+            toInd2 = segment_inds(peaks_ranked(jj,2))+afterPeak;
+            spike_window = fromInd2:toInd2;
+            % Skip spike if cannot capture full window within this data block
+            if spike_window(1) < searchInds(1) || spike_window(end) > searchInds(end) 
+                continue;
+            end
+            % Store extracted spikes
+            if abs(rawSignal(segment_inds(peaks_ranked(jj,2)))) > runningThres
+                covered(counterNeg,1:2) = [fromInd2 toInd2];
+                spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ;
+                spikeTimestamps(counterNeg) = fromInd2+peakInd-1; % HM Edit
 
-        counterNeg=counterNeg+1; %how many spikes extracted so far
-        rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
-        maxCovered=toInd2;
+                counterNeg=counterNeg+1; %how many spikes extracted so far
+                rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
+                maxCovered=toInd2;
+                % Adjust list of peaks so there are no overlapping windows
+                % (any other peak in a 45 point time window is excluded)    
+%             inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+afterPeak & peaks_ranked(:,2) > peaks_ranked(jj,2)-beforePeak)];
+                inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+22 & peaks_ranked(:,2) > peaks_ranked(jj,2)-22)];
+            end
+            
+
+        end
+        
+%         % HM Edit - Use the following if detecting spikes with original OSort code
+%         if maxCovered >= searchInds(i)
+%             continue;
+%         end
+%         
+%         % Grab the signal segment that crosses threshold
+%         if i == 1
+%             fromInd = searchInds(1);
+%             toInd = searchInds(searchIndBorders(i));
+%         elseif i == size(searchIndBorders,1)
+%             fromInd = searchInds(searchIndBorders(end));
+%             toInd = searchInds(size(searchInds,1));
+%         else
+%             fromInd = searchInds(searchIndBorders(i-1)+1);
+%             toInd = searchInds(searchIndBorders(i));
+%         end
+%         
+%         fromInd=searchInds(i)-beforePeak;
+%         toInd=searchInds(i)+afterPeak;
+%         if fromInd<=0 || toInd>totLength || fromInd<maxCovered
+%             continue;
+%         end
+
+%         spikeSignal = rawSignal( fromInd:toInd );
+%         switch ( params.peakAlignMethod )
+%             case METHOD_PEAKFIND_FINDPEAK %determine peak with standard method
+%                 peakInd=findPeak(spikeSignal, stdRawSignal, params.alignMethod);
+%             case METHOD_PEAKFIND_NONE %no peak finding
+%                 if params.detectionMethod==5  %wavelets determine their own peak time.
+%                     peakInd=beforePeak;
+%                 else
+%                     peakInd=0;
+%                 end
+%             case METHOD_PEAKFIND_POWER %use power to find peak
+%                 pSig = peakFindSignal(fromInd:toInd);                
+%                 peakInd=findPeakPower(spikeSignal, pSig);
+%             case METHOD_PEAKFIND_MTEO %use MTEO signal to find peak
+%                 pSig = peakFindSignal(fromInd:toInd);                
+%                 peakInd=findPeakMTEO(spikeSignal, pSig);
+%             otherwise
+%                 error('unknown peak detection method');
+%         end
+%         
+%         %unclear spike, ignore it.
+%         if peakInd==-1
+%             notSig=notSig+1;
+%             maxCovered=toInd;
+%             %['not sig ' num2str(notSig)]
+%             continue;
+%         end
+%         
+% %         fromInd2 = fromInd+peakInd-beforePeak;
+%         fromInd2 = fromInd+peakInd-beforePeak-1; % HM Edit
+% %         toInd2   = fromInd+peakInd+afterPeak;
+%         toInd2   = fromInd+peakInd+afterPeak-1; % HM Edit
+        %already covered,to prevent repeats in any case
+%         if fromInd2<=0 || toInd2>length(rawSignal) || length(find(covered(:,1)==fromInd2))>0  && length(find(covered(:,2)==toInd2))>0
+%             continue;
+%         end
+%         
+%         covered(counterNeg,1:2) = [fromInd2 toInd2];
+%         spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ;
+% %         spikeTimestamps(counterNeg) = fromInd+peakInd;
+%         spikeTimestamps(counterNeg) = fromInd+peakInd-1; % HM Edit
+% 
+%         counterNeg=counterNeg+1; %how many spikes extracted so far
+%         rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
+%         maxCovered=toInd2;
 end
+
+
+
 %-- end extracting spikes
 t2=clock;
 
