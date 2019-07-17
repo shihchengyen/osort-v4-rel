@@ -41,7 +41,7 @@ if nrDatapoints==256
         weights(201:256)=0;
     else
         weights = ones(size(weights,2),1); % Exact threshold - HM Edit (50-150th point only) 
-        weights(1:49,1) = 0;
+        weights(1:74,1) = 0;
         weights(151:end) = 0;
     end
 end
