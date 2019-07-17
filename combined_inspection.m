@@ -71,6 +71,7 @@ function [handles] = initialize_data(hObject, eventdata, handles)
 
     handles.snap_nrAssigned = handles.spikes_data.nrAssigned;
     handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned(:,1)));
+%     handles.noise_status = ones(1,length(handles.spikes_data.nrAssigned(:,1)));
     
     temp_arr = handles.spikes_data.nrAssigned(:,1);
     temp_arr = unique(temp_arr, 'stable');
@@ -92,6 +93,9 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.max_max = handles.meandata{4,1};
     handles.contents_top = [0 0];
     
+    handles.sieved_means_preserved = handles.sieved_means;
+    handles.counter_list_preserved = handles.counter_list;
+    
     % suggestions start
     
     for i = 1:length(handles.noise_status)
@@ -104,65 +108,61 @@ function [handles] = initialize_data(hObject, eventdata, handles)
         end
     end
     
-    disp(handles.noise_status);
-    
-    for i = 1:length(handles.noise_status)
-        average_data = handles.sieved_means(:,i);
-%         average_data = average_data(7:length(average_data));
-%         average_data = movmean(average_data, 3);
-        [pks, locs, w, p] = findpeaks(average_data);
-
-        max_ind = 1;
-        max_pk = 0;
-        min_ind = 1;
-        min_pk = 0;
-        for j = 1:length(pks)
-            if pks(j) > max_pk
-                max_pk = pks(j);
-                max_ind = locs(j);
-            end
-        end
-        
-        for j = 1:length(average_data)
-            if average_data(j) < min_pk
-                min_pk = average_data(j);
-                min_ind = j;
-            end
-        end
-
-        trigger = 0;
-        
-        
-        if min_ind > max_ind
-            for j = 1:length(locs)
-                if locs(j) >= max_ind && trigger == 0
-                    trigger = 1;
-                elseif trigger == 1 && locs(j) < min_ind
-                    if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
-                        handles.noise_status(i) = 1;
-                        break;
-                    end
-                end
-            end
-        else
-            for j = 1:length(locs)
-                if locs(j) >= min_ind && locs(j) < max_ind
-                    if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
-                        handles.noise_status(i) = 1;
-                        break;
-                    end
-                end
-            end
-        end
-
-    end    
+%     for i = 1:length(handles.noise_status)
+%         average_data = handles.sieved_means(:,i);
+% %         average_data = average_data(7:length(average_data));
+% %         average_data = movmean(average_data, 3);
+%         [pks, locs, w, p] = findpeaks(average_data);
+% 
+%         max_ind = 1;
+%         max_pk = 0;
+%         min_ind = 1;
+%         min_pk = 0;
+%         for j = 1:length(pks)
+%             if pks(j) > max_pk
+%                 max_pk = pks(j);
+%                 max_ind = locs(j);
+%             end
+%         end
+%         
+%         for j = 1:length(average_data)
+%             if average_data(j) < min_pk
+%                 min_pk = average_data(j);
+%                 min_ind = j;
+%             end
+%         end
+% 
+%         trigger = 0;
+%         
+%         
+%         if min_ind > max_ind
+%             for j = 1:length(locs)
+%                 if locs(j) >= max_ind && trigger == 0
+%                     trigger = 1;
+%                 elseif trigger == 1 && locs(j) < min_ind
+%                     if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
+%                         handles.noise_status(i) = 1;
+%                         break;
+%                     end
+%                 end
+%             end
+%         else
+%             for j = 1:length(locs)
+%                 if locs(j) >= min_ind && locs(j) < max_ind
+%                     if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
+%                         handles.noise_status(i) = 1;
+%                         break;
+%                     end
+%                 end
+%             end
+%         end
+% 
+%     end    
     
     disp(handles.noise_status);
     
     % suggestions end
     
-    handles.sieved_means_preserved = handles.sieved_means;
-    handles.counter_list_preserved = handles.counter_list;
     
     plot(handles.bg1, 1, 1);
     cla(handles.bg1);
@@ -318,10 +318,15 @@ function [handles] = page_plots(hObject, eventdata, handles)
         for j = 1:length(indices)
             plot(handles.small_arr(count), 1:64, handles.sieved_means_preserved(:,indices(j)), 'LineWidth', 1,'Hittest','off');
         end
-        if handles.noise_status(i) == 0
-            title(handles.small_arr(count), strjoin(cellstr(num2str(children)), ' '));
-        else
-            title(handles.small_arr(count), strcat(strjoin(cellstr(num2str(children)), ' '), ' (noise)'));
+        
+        title(handles.small_arr(count), strjoin(cellstr(num2str(children)), ' '));
+        
+        for j = 1:length(handles.snap_nrAssigned(:,1))
+            if handles.snap_nrAssigned(j,1) == handles.distinct_plots(i)
+                if handles.noise_status(j) == 1
+                    title(handles.small_arr(count), strcat(strjoin(cellstr(num2str(children)), ' '), ' (noise)'));
+                end
+            end
         end
         hold(handles.small_arr(count), 'off');
 
@@ -666,6 +671,10 @@ guidata(hObject, handles);
 function combined_inspection_OpeningFcn(hObject, eventdata, handles, varargin)
 
     handles = initialize_data(hObject, eventdata, handles);
+    disp('starting automerge');
+    disp(handles.spikes_data.nrAssigned);
+    handles = auto_merge(hObject, eventdata, handles);
+    disp(handles.spikes_data.nrAssigned);
     handles = page_plots(hObject, eventdata, handles);
 
 
@@ -1248,11 +1257,85 @@ function kick1_Callback(hObject, eventdata, handles)
 guidata(hObject, handles);
 
 
+function [handles] = auto_merge(hObject, eventdata, handles)
+
+    used = zeros(1,length(handles.snap_nrAssigned(:,1)));
+    for i = 1:length(handles.snap_nrAssigned(:,1))
+        handles.candidates = zeros(1,length(handles.snap_nrAssigned(:,1)));
+        if used(i) == 1
+            continue
+        end
+        basis = NaN(64,length(used));
+        basis(:,1) = handles.sieved_means_preserved(:,i);
+        basis_counter = 1;
+        for j = 1:length(handles.snap_nrAssigned(:,1))
+            if j == i || used(j) == 1
+                continue;
+            end
+            pass = 1;
+            for k = 1:basis_counter
+                if mean(abs(handles.sieved_means_preserved(:,j)-basis(:,k))) > 3 || std(abs(handles.sieved_means_preserved(:,j)-basis(:,k))) > 20
+                    pass = 0;
+                end
+                [val1a, index1a] = max(handles.sieved_means_preserved(:,j));
+                [val2a, index2a] = max(basis(:,k));
+                
+                if abs(val1a - val2a) > 4 || abs(index1a - index2a) > 2
+                    pass = 0;
+                end
+
+                [val1i, index1i] = min(handles.sieved_means_preserved(:,j));
+                [val2i, index2i] = min(basis(:,k));
+                
+                if abs(val1i - val2i) > 4 || abs(index1i - index2i) > 1
+                    pass = 0;
+                end
+                
+                thres_dist = abs(index2a - index2i);
+                if abs(thres_dist - abs(index1a - index1i)) > 2
+                    pass = 0;
+                end
+                   
+            end
+            if pass == 1
+                basis_counter = basis_counter + 1;
+                basis(:,basis_counter) = handles.sieved_means_preserved(:,j);
+                handles.candidates(j) = 1;
+                handles.candidates(i) = 1;
+            end
+        end
+        disp('midway:');
+        if i == 7 || i == 8
+            disp(i);
+            disp(handles.candidates);
+            disp(handles.spikes_data.nrAssigned);
+        end
+        parent = 0;
+        for k = 1:length(handles.candidates)
+            if handles.candidates(k) == 1
+                if parent == 0
+                    parent = handles.spikes_data.nrAssigned(k,1); 
+                    if i == 7
+                        disp('parent:');
+                        disp(parent);
+                    end
+                end
+                for j = 1:length(handles.spikes_data.nrAssigned(:,1))
+                    if handles.spikes_data.nrAssigned(j,1) == handles.distinct_plots(k)
+                        handles.spikes_data.nrAssigned(j,1) = parent;
+                    end 
+                end      
+            end
+        end
+    end
+    
+handles = refresher(hObject, eventdata, handles);
+guidata(hObject, handles);
 
 
 
 % % --- Executes on button press in merge.
-function merge_Callback(hObject, eventdata, handles)
+function [handles] = merge_Callback(hObject, eventdata, handles)
 
     disp('executing merger');
 
@@ -1429,7 +1512,10 @@ function export1_Callback(hObject, eventdata, handles)
     new = handles.spikes_data.nrAssigned;
     orig = handles.snap_nrAssigned;
     noise_labels = handles.noise_status;
-    save('changes.mat', 'new', 'orig', 'noise_labels');
+    
+    disp(new);
+    disp(noise_labels);
+%     save('changes.mat', 'new', 'orig', 'noise_labels');
 
     assignedNegative_final = handles.spikes_data.assignedNegative;
     for i = 1:length(handles.spikes_data.assignedNegative)
@@ -1546,7 +1632,7 @@ function export1_Callback(hObject, eventdata, handles)
             timestamps = timestamps(1,1:counter2-1);
             
             disp(length(timestamps));
-            strain.timestamps = timestamps;
+            strain.timestamps = timestamps/1000;
             strain.spikeForm = nanmean(waves, 1);
             save('spiketrain.mat', '-struct', 'strain');            
             writetable(array2table(timestamps), 'spiketrain.csv');
@@ -1773,27 +1859,30 @@ function noise1_Callback(hObject, eventdata, handles)
         for j = 1:length(handles.snap_nrAssigned(:,1))
             if handles.snap_nrAssigned(j,1) == contents(i)
                 handles.noise_status(j) = get(handles.noise1,'Value');
-                if handles.noise_status(j) == 1
-                    if handles.candidates(j) == 1
-                        handles.candidates(j) = 0;
-                        cla(handles.bg3);
-                        cla(handles.png6); 
-                        set(handles.pca_base_3, 'visible', 'off');
-                        set(handles.pca_overlay_3, 'visible', 'off');
-                        cla(handles.ac3, 'reset');
-                        cla(handles.sr3, 'reset');        
-
-                        if sum(handles.candidates) > 0
-                            handles = merge_plot1(hObject, eventdata, handles);
-                            handles = merge_plot2(hObject, eventdata, handles);
-                            handles = merge_plot34(hObject, eventdata, handles);
-                        end
-                    end
-                end
+%                 if handles.noise_status(j) == 1
+%                     if handles.candidates(j) == 1
+%                         handles.candidates(j) = 0;
+%                         cla(handles.bg3);
+%                         cla(handles.png6); 
+%                         set(handles.pca_base_3, 'visible', 'off');
+%                         set(handles.pca_overlay_3, 'visible', 'off');
+%                         cla(handles.ac3, 'reset');
+%                         cla(handles.sr3, 'reset');        
+% 
+%                         if sum(handles.candidates) > 0
+%                             handles = merge_plot1(hObject, eventdata, handles);
+%                             handles = merge_plot2(hObject, eventdata, handles);
+%                             handles = merge_plot34(hObject, eventdata, handles);
+%                         end
+%                     end
+%                 end
             end
         end
     end
- 
+    
+    disp('noise: ');
+    disp(handles.noise_status);
+    
     handles = page_plots(hObject, eventdata, handles);
     handles = update_colors(hObject, eventdata, handles);
         
