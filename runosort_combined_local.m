@@ -79,6 +79,7 @@ function [output] = runosort_combined_local(channel_name)
                     RunOSort(pwd);
                     create_pngs(pwd);
                     
+                    delete('rplhighpass.mat');
                     
                 end
             
