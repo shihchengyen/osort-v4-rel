@@ -78,7 +78,7 @@ function [output] = process_channel(current_path)
     cd(current_path);
     command = 'rm rplhighpass.mat';
     unix(command);
-    
+
     command = 'scp -P 8398 -r oSort pngs start_times.mat hippocampus@cortex.nus.edu.sg:/volume1/Hippocampus/Data/picasso-misc/';
     command = strcat(command, cut{1,length(cut)-2}, '/session_merged/', cut{1,length(cut)}, '/', channel_name);
     [status, result] = unix(command);
@@ -87,7 +87,7 @@ function [output] = process_channel(current_path)
     
     unix('rm -r oSort');
     unix('rm start_times.mat');
-    unix('rm -r pngs');
+    unix('rm -r pngs');    
     
 end
 
