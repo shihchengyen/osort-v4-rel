@@ -156,7 +156,8 @@ for i=startWithBlock:runs
 	spikeWaveformsOrig = spikeWaveforms; %before upsampling
         
     %upsample and re-align
-    % HM Edit - Use this if detecting spikes using peak rank
+    % HM Edit - Use this if detecting spikes using peak rank (this is also
+    % used in posthocWhiten.m
     spikeWaveforms=upsampleSpikes(spikeWaveforms);
     shifted = zeros(1,size(spikeWaveforms,1));
     for jj = 1:size(spikeWaveforms,1)
@@ -254,24 +255,25 @@ blocksProcessed=i;
 
 %whiten
 if size(noiseTraces,1)>0 & size(allSpikesCorrFree,1)>0
-    [trans, transUp, corr, stdWhitened] = posthocWhiten(noiseTraces, allSpikesCorrFree, alignMethod); % HM Edit - edited posthocWhiten to only upsample, without realigning
+    [trans, transUp, corr, stdWhitened] = posthocWhiten(noiseTraces, allSpikesCorrFree, alignMethod); % HM Edit - edited posthocWhiten to 1. only upsample, without realigning, if using original oSort findpeak.m 2. upsample and realign if detecting spikes with peak rank
     allSpikesCorrFree = transUp;   
     
     % HM Edit
     if size(allSpikes,1) ~= size(allSpikesCorrFree,1)
         error('Spike waveforms and Spike waveform (corr free) don''t match in number');
     end
-    for ii = 1:size(allSpikesCorrFree,1)
-        currentSpike = allSpikesCorrFree(ii,:);
-        diff = abs(allShifted(ii));
-        maxPos = 95;
-        if allShifted(ii)<0
-            currentSpike = [currentSpike(1)*ones(1,diff) currentSpike(1:maxPos) currentSpike(maxPos+1:end-diff)]; % HM Edit
-        elseif allShifted(ii)>0
-            currentSpike = [currentSpike(diff+1:maxPos) currentSpike(maxPos+1:end) currentSpike(end)*ones(1,diff)];
-        end
-        allSpikesCorrFree(ii,:) = currentSpike;
-    end
+%     % HM Edit - use this to realign only if using original oSort findpeak.m
+%     for ii = 1:size(allSpikesCorrFree,1)
+%         currentSpike = allSpikesCorrFree(ii,:);
+%         diff = abs(allShifted(ii));
+%         maxPos = 95;
+%         if allShifted(ii)<0
+%             currentSpike = [currentSpike(1)*ones(1,diff) currentSpike(1:maxPos) currentSpike(maxPos+1:end-diff)]; % HM Edit
+%         elseif allShifted(ii)>0
+%             currentSpike = [currentSpike(diff+1:maxPos) currentSpike(maxPos+1:end) currentSpike(end)*ones(1,diff)];
+%         end
+%         allSpikesCorrFree(ii,:) = currentSpike;
+%     end
     
     %only store the autocorrelation,not all noise traces
     noiseTraces=corr;

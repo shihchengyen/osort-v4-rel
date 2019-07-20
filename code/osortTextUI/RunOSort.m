@@ -28,8 +28,8 @@ paths.pathRaw = paths.basePath;
 % range(s) of timestamps specified will be processed. 
 paths.timestampspath = paths.basePath;             
 
-% filesToProcessStr = Channel; % HM Edit
-filesToProcessStr = '1'; % HM Edit
+filesToProcessStr = pstr{psend}(end-2:end); % HM Edit
+% filesToProcessStr = '1'; % HM Edit
 %which channels to detect/sort
 filesToProcess = str2double(filesToProcessStr);  
 % which channels to ignore
@@ -56,7 +56,7 @@ paramsIn=[];
 
 % some systems use CSC instead of A
 paramsIn.rawFilePrefix='channel';        
-paramsIn.processedFilePrefix='P';
+paramsIn.processedFilePrefix='Ch';
 
 % see defineFileFormat.m for options
 paramsIn.rawFileVersion = 5; 
@@ -112,26 +112,37 @@ paramsIn.detectionMethod=1;
 dp.kernelSize=18; 
 paramsIn.detectionParams=dp;
 % extraction threshold
-extractionThreshold = 5;  
+extractionThreshold = 6;  
 
 thres = [repmat(extractionThreshold, 1, length(filesToProcess))];
 
 %% Filenames
 
 if isfield(dp,'kernelSize')
-    foldername = [paths.pathRaw filesepchar 'oSort' filesepchar 'detect' ...
-    	num2str(paramsIn.detectionMethod) 'peakType' ...
-    	num2str(paramsIn.peakAlignMethod) 'Align' ...
-    	num2str(paramsIn.defaultAlignMethod) 'Thresh' ...
-    	num2str(extractionThreshold) 'kern' num2str(dp.kernelSize)];
-    dp.kernelSize
+    foldername = [paths.pathRaw filesepchar 'oSort' filesepchar ...
+        'detect' num2str(paramsIn.detectionMethod) ...
+        'Thresh' num2str(extractionThreshold) 'kern' num2str(dp.kernelSize)];
 elseif isfield(dp,'waveletName')
-    foldername = [paths.pathRaw filesepchar 'oSort' filesepchar 'detect' ...
-    	num2str(paramsIn.detectionMethod) dp.waveletName 'peakType' ...
-    	num2str(paramsIn.peakAlignMethod) 'Align' ...
-    	num2str(paramsIn.defaultAlignMethod) 'Thresh' ...
-    	num2str(extractionThreshold)];
+    foldername = [paths.pathRaw filesepchar 'oSort' filesepchar ... 
+        'detect' num2str(paramsIn.detectionMethod) dp.waveletName ...
+        'Thresh' num2str(extractionThreshold)];
 end
+
+% if isfield(dp,'kernelSize')
+%     foldername = [paths.pathRaw filesepchar 'oSort' filesepchar 'detect' ...
+%     	num2str(paramsIn.detectionMethod) 'peakType' ...
+%     	num2str(paramsIn.peakAlignMethod) 'Align' ...
+%     	num2str(paramsIn.defaultAlignMethod) 'Thresh' ...
+%     	num2str(extractionThreshold) 'kern' num2str(dp.kernelSize)];
+%     dp.kernelSize
+% elseif isfield(dp,'waveletName')
+%     foldername = [paths.pathRaw filesepchar 'oSort' filesepchar 'detect' ...
+%     	num2str(paramsIn.detectionMethod) dp.waveletName 'peakType' ...
+%     	num2str(paramsIn.peakAlignMethod) 'Align' ...
+%     	num2str(paramsIn.defaultAlignMethod) 'Thresh' ...
+%     	num2str(extractionThreshold)];
+% end
+
 paths.pathOut=[foldername filesepchar 'sort'];
 paths.pathFigs=[foldername filesepchar 'figs'];
 indDate = strfind(paths.basePath,[filesepchar 'session']);
