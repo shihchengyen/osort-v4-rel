@@ -7,10 +7,12 @@ function create_pngs(current_path)
 
     channel_path = cd('./oSort/');
     folder_name = dir();
-    cd(strcat(folder_name(length(folder_name)).name, '/sort/'));
+    cd(strcat(folder_name(length(folder_name)).name, '/sort/')); % cd(strcat('detect1Thresh6kern18', '/sort/'));
     folder_name = dir();
     cd(folder_name(length(folder_name)).name);
-    handles.spikes_data = load('P1_sorted_new.mat');
+    mat_name_d = dir('*_sorted_new.mat');
+    mat_name = {mat_name_d.name};
+    handles.spikes_data = load(mat_name{1}); % 'P1_sorted_new.mat'
     cd(channel_path);
     
     mkdir('pngs');
@@ -18,7 +20,7 @@ function create_pngs(current_path)
 
     disp(handles.spikes_data.nrAssigned);
 
-    sieved = NaN(length(handles.spikes_data.assignedNegative), 64, length(handles.spikes_data.nrAssigned));
+    sieved = NaN(length(handles.spikes_data.assignedNegative), 64, length(handles.spikes_data.nrAssigned(:,1)));
     counter_list = ones(1,length(handles.spikes_data.nrAssigned(:,1)));
 
     max_max = 0;
@@ -105,7 +107,136 @@ function create_pngs(current_path)
 
     end
     
+    % stitched on autocorr-noise processing here %
+    handles.distinct_plots = handles.spikes_data.nrAssigned(:,1);
+    handles.noise_status3 = zeros(1, length(handles.spikes_data.nrAssigned(:,1)));
+    
+    for k = 1:length(handles.noise_status3)
+        
+        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
+        count = 1;
+        for i = 1:length(handles.spikes_data.assignedNegative)
+            
+                if handles.spikes_data.assignedNegative(i) == handles.distinct_plots(k)
+                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
+                    count = count + 1;
+                end
+            
+        end
+
+        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
+        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+        [~,~,~,Cxx] = psautospk(spike_train, 1);
+    
+        Cxx(1) = [];
+        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+        Cxx = Cxx(15:100);
+        
+        [~, ~, ~, p] = findpeaks(Cxx);
+        thres = median(p) + 3*std(p);
+        [~, identified] = findpeaks(Cxx, 'MinPeakProminence', thres);
+        
+        diff_c = diff(identified);
+        median_c = median(diff_c);
+        counter_c = 0;
+        for i = 1:length(diff_c)
+            if abs(diff_c(i) - median_c) < 2
+                counter_c = counter_c + 1;
+            end
+        end
+        
+        if counter_c/length(diff_c) >= 0.7 && length(diff_c) > 1
+            handles.noise_status3(k) = 1;
+        end
+    end
+    
+    tosave = handles.noise_status3;
+    save('autocorr_noise.mat', 'tosave');
+    
+    
     cd(channel_path);
+end
+
+function [f,Pxxn,tvect,Cxx] = psautospk(spk,tstep,nfft,window,noverlap,dflag)
+
+
+    if ( (nargin ~= 6) & (nargin ~= 2) )
+      disp(' ');
+      disp('usage1: psautospk(spk,tstep) ');
+      disp(' ');
+      disp('usage2: psautospk(spk,tstep,nfft,window,noverlap,dflag) ');
+      disp(' ');
+      disp('       for more information type "help psautospk" in the main');
+      disp('       matlab window');
+      disp(' ');
+      return;
+    end;
+
+    if ( nargin == 2 )
+      nfft = 2048;
+      window = bartlett(nfft);
+      noverlap = 1024;
+      dflag = 'none';
+    end;
+
+    %computes the sampling frequency in Hz
+    tstep_s = tstep*1e-3;  %converts to sec
+    Fs = 1/tstep_s; %in Hz
+
+    %computes and subtracts the mean firing rate
+    spk = spk(:); %convertes to column vector if necessary
+    spk = spk*Fs; %converts to units of spikes/sec
+    l_spk = length(spk);
+    s_spk = sum(spk);
+    m_spk = s_spk/l_spk;
+    spk = spk - m_spk;
+
+    % [Pxx_,f_] = psd(spk,nfft,Fs,window,noverlap,dflag);
+    % %converts to units of (spk/Hz)^2
+    % Pxxn_ = Pxx_ * tstep_s;
+
+    % JD/aug16 : update to use pwelch instead of deprecated psd
+    [Pxxn,f] = pwelch(spk,window,noverlap,nfft,Fs);
+    %converts to units of (spk/Hz)^2
+    Pxx = Pxxn / tstep_s;
+
+    %prepares the data to compute the autocorrelation
+    Pxxx = zeros(nfft,1);
+    Pxxx(1:nfft/2+1,1) = Pxx(1:nfft/2+1,1);
+    for k = 2:nfft/2
+      Pxxx(nfft+2-k,1) = Pxx(k,1);
+    end;
+
+    %computes the autocorrelation function
+    Cxxx = fft(Pxxx,nfft);
+    %normalizes to get the usual definition of autocorrelation
+    Cxxx = Cxxx/nfft;
+
+    tvect = -(nfft/2)*tstep:tstep:(nfft/2)*tstep;
+    Cxx = zeros(nfft+1,1);
+    for k = 1:nfft/2
+      Cxx(k,1) = real(Cxxx(nfft/2 + k,1));
+    end;
+    Cxx(nfft/2+1,1) = real(Cxxx(1,1));
+    for k = nfft/2+2:nfft+2
+      Cxx(k,1) = real(Cxxx(k-nfft/2,1));
+    end
+end
+
+function n = convertToSpiketrain(timestamps, binsize)
+    if nargin<2
+        binsize=1;
+    end
+
+    spiketrain=(timestamps/1000);  %now in ms
+    spiketrain=spiketrain-spiketrain(1); %offset gone
+    roundedSpiketrain = round(spiketrain);
+    if binsize==1
+        n=zeros(1,roundedSpiketrain(end));
+        n( roundedSpiketrain(find(roundedSpiketrain>0)) )=1; 
+    else
+       n = histc( roundedSpiketrain, [0:binsize:roundedSpiketrain(end)] );
+    end
 end
 
 function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>

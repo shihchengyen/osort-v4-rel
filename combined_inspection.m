@@ -72,7 +72,9 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.snap_nrAssigned = handles.spikes_data.nrAssigned;
     handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned(:,1)));
 %     handles.noise_status = ones(1,length(handles.spikes_data.nrAssigned(:,1)));
-    
+    handles.noise_status2 = zeros(1,length(handles.spikes_data.nrAssigned(:,1)));    
+    handles.noise_status3 = zeros(1,length(handles.spikes_data.nrAssigned(:,1))); 
+
     temp_arr = handles.spikes_data.nrAssigned(:,1);
     temp_arr = unique(temp_arr, 'stable');
 
@@ -100,64 +102,121 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     
     for i = 1:length(handles.noise_status)
         average_data = handles.sieved_means(:,i);
-        diff = abs(mean(average_data(1:5)) - mean(average_data(60:64)));
-        if diff > 0.3*(max(average_data) - min(average_data))
+        diff2 = abs(mean(average_data(1:5)) - mean(average_data(60:64)));
+        if diff2 > 0.3*(max(average_data) - min(average_data))
             handles.noise_status(i) = 1;
-        elseif diff > 3*handles.spikes_data.stdEstimateOrig
+        elseif diff2 > 3*handles.spikes_data.stdEstimateOrig
             handles.noise_status(i) = 1;
         end
     end
+
+    disp('first round noise check:');
+    disp(handles.noise_status);
     
-%     for i = 1:length(handles.noise_status)
-%         average_data = handles.sieved_means(:,i);
-% %         average_data = average_data(7:length(average_data));
-% %         average_data = movmean(average_data, 3);
-%         [pks, locs, w, p] = findpeaks(average_data);
-% 
-%         max_ind = 1;
-%         max_pk = 0;
-%         min_ind = 1;
-%         min_pk = 0;
-%         for j = 1:length(pks)
-%             if pks(j) > max_pk
-%                 max_pk = pks(j);
-%                 max_ind = locs(j);
-%             end
-%         end
-%         
-%         for j = 1:length(average_data)
-%             if average_data(j) < min_pk
-%                 min_pk = average_data(j);
-%                 min_ind = j;
-%             end
-%         end
-% 
-%         trigger = 0;
-%         
-%         
-%         if min_ind > max_ind
-%             for j = 1:length(locs)
-%                 if locs(j) >= max_ind && trigger == 0
-%                     trigger = 1;
-%                 elseif trigger == 1 && locs(j) < min_ind
-%                     if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
-%                         handles.noise_status(i) = 1;
-%                         break;
-%                     end
-%                 end
-%             end
-%         else
-%             for j = 1:length(locs)
-%                 if locs(j) >= min_ind && locs(j) < max_ind
-%                     if abs(locs(j)-min_ind) > 1 && abs(locs(j)-max_ind) > 1
-%                         handles.noise_status(i) = 1;
-%                         break;
-%                     end
-%                 end
-%             end
-%         end
-% 
-%     end    
+    for k = 1:length(handles.noise_status)
+        
+        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
+        count = 1;
+        for i = 1:length(handles.spikes_data.assignedNegative)
+            
+                if handles.spikes_data.assignedNegative(i) == handles.distinct_plots(k)
+                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
+                    count = count + 1;
+                end
+            
+        end
+
+        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
+        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+        [~,~,~,Cxx] = psautospk(spike_train, 1);
+    
+        Cxx(1) = [];
+        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+        Cxx = Cxx(15:100);
+        
+        [~, ~, ~, p] = findpeaks(Cxx);
+        thres = median(p) + 3*std(p);
+        [~, identified] = findpeaks(Cxx, 'MinPeakProminence', thres);
+        
+        diff_c = diff(identified);
+        median_c = median(diff_c);
+        counter_c = 0;
+        for i = 1:length(diff_c)
+            if abs(diff_c(i) - median_c) < 2
+                counter_c = counter_c + 1;
+            end
+        end
+        
+        if counter_c/length(diff_c) >= 0.7 && length(diff_c) > 1
+            handles.noise_status3(k) = 1;
+        end
+    end
+    
+    disp('autocorr round noise check:');
+    disp(handles.noise_status3);
+    
+    indices = handles.spikes_data.allSpikeInds;
+
+    flagged = zeros(1, length(indices));
+
+    for i = 1:length(indices)
+        central_peak = handles.hp_trace(indices(i));
+        left = max(1, indices(i) - 500);
+        right = min(length(handles.hp_trace), indices(i) + 500);
+
+        window = handles.hp_trace(left:right);
+        if central_peak < 0
+            window = -window;
+        end
+
+        thres = max(window);
+
+        peaks = [];
+        warning('off','signal:findpeaks:largeMinPeakHeight');
+        while length(peaks) < 5
+            thres = thres * 0.95;
+            [peaks, pos] = findpeaks(window, 'MinPeakHeight', thres, 'MinPeakDistance', 20);
+        end
+        time_diff = diff(pos);
+        median_val = median(time_diff);
+        counter = 0;
+        for j = 1:length(time_diff)
+            if abs(median_val - time_diff(j)) < 10
+                counter = counter + 1;
+            end
+        end
+        if counter/length(time_diff) > 0.75
+            for j = 1:length(indices)
+                if abs(indices(j) - indices(i)) < 500
+                    flagged(j) = 1;
+                end
+            end
+        end
+    end
+    sum(flagged)
+    length(flagged)
+    flagged_count = zeros(1,length(handles.counter_list));
+    for i = 1:length(flagged)
+        if flagged(i) == 1
+            for j = 1:length(handles.distinct_plots)
+                if handles.distinct_plots(j) == handles.spikes_data.assignedNegative(i)
+                    flagged_count(j) = flagged_count(j) + 1;
+                end
+            end
+        end
+    end
+    disp(flagged_count);
+    for i = 1:length(flagged_count)
+        ratio = flagged_count(i)/handles.spikes_data.nrAssigned(i,2);
+        disp(ratio);
+        if ratio >= 0.2
+            handles.noise_status2(i) = 1;
+        end
+    end
+        
+    disp('raw trace round noise check:');
+    disp(handles.noise_status2);  
+    handles.noise_status = handles.noise_status | handles.noise_status2 | handles.noise_status3;
     
     disp(handles.noise_status);
     
@@ -1265,11 +1324,17 @@ function [handles] = auto_merge(hObject, eventdata, handles)
         if used(i) == 1
             continue
         end
+        if handles.noise_status(i) == 1
+            continue
+        end
         basis = NaN(64,length(used));
         basis(:,1) = handles.sieved_means_preserved(:,i);
         basis_counter = 1;
         for j = 1:length(handles.snap_nrAssigned(:,1))
             if j == i || used(j) == 1
+                continue;
+            end
+            if handles.noise_status(j) == 1
                 continue;
             end
             pass = 1;
@@ -1304,21 +1369,12 @@ function [handles] = auto_merge(hObject, eventdata, handles)
                 handles.candidates(i) = 1;
             end
         end
-        disp('midway:');
-        if i == 7 || i == 8
-            disp(i);
-            disp(handles.candidates);
-            disp(handles.spikes_data.nrAssigned);
-        end
+
         parent = 0;
         for k = 1:length(handles.candidates)
             if handles.candidates(k) == 1
                 if parent == 0
                     parent = handles.spikes_data.nrAssigned(k,1); 
-                    if i == 7
-                        disp('parent:');
-                        disp(parent);
-                    end
                 end
                 for j = 1:length(handles.spikes_data.nrAssigned(:,1))
                     if handles.spikes_data.nrAssigned(j,1) == handles.distinct_plots(k)
