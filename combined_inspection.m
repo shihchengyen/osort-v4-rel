@@ -83,6 +83,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.distinct_plots = temp_arr;
     handles.distinct_plot_count = length(temp_arr);
 
+    handles.autocorr_noise = load('./pngs/autocorr_noise.mat');
+    handles.autocorr_noise = handles.autocorr_noise.tosave;
     handles.meandata = load('./pngs/meandata.mat');
     handles.meandata = handles.meandata.meandata;
 
@@ -115,46 +117,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     disp('first round noise check:');
     disp(handles.noise_status);
     
-    for k = 1:length(handles.noise_status)
-        
-        curr_times_spike_train = NaN(1,length(handles.spikes_data.assignedNegative));
-        count = 1;
-        for i = 1:length(handles.spikes_data.assignedNegative)
-            
-                if handles.spikes_data.assignedNegative(i) == handles.distinct_plots(k)
-                    curr_times_spike_train(1,count) = handles.spikes_data.newTimestampsNegative(i);
-                    count = count + 1;
-                end
-            
-        end
-
-        curr_times_spike_train = curr_times_spike_train(1,1:count-1);
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-        [~,~,~,Cxx] = psautospk(spike_train, 1);
-    
-        Cxx(1) = [];
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        Cxx = Cxx(15:100);
-        
-        [~, ~, ~, p] = findpeaks(Cxx);
-        thres = median(p) + 3*std(p);
-        [~, identified] = findpeaks(Cxx, 'MinPeakProminence', thres);
-        
-        diff_c = diff(identified);
-        median_c = median(diff_c);
-        counter_c = 0;
-        for i = 1:length(diff_c)
-            if abs(diff_c(i) - median_c) < 2
-                counter_c = counter_c + 1;
-            end
-        end
-        
-        if counter_c/length(diff_c) >= 0.7 && length(diff_c) > 1
-            handles.noise_status3(k) = 1;
-        end
-    end
-    
     disp('autocorr round noise check:');
+    handles.noise_status3 = flip(handles.autocorr_noise);
     disp(handles.noise_status3);
     
 %     indices = handles.spikes_data.allSpikeInds;

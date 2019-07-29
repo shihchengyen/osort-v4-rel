@@ -1,8 +1,8 @@
 #/bin/bash 
   
 #PBS -P RunOSort
-#PBS -q short
-#PBS -l select=1:ncpus=1:mem=20GB 
+#PBS -q serial
+#PBS -l select=1:ncpus=1:mem=15GB
 #PBS -j oe 
 
 cd $PBS_O_WORKDIR;   ## This line is needed, do not modify. 
