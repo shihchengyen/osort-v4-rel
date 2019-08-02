@@ -22,9 +22,10 @@ function create_pngs(current_path)
 
     sieved = NaN(length(handles.spikes_data.assignedNegative), 64, length(handles.spikes_data.nrAssigned(:,1)));
     counter_list = ones(1,length(handles.spikes_data.nrAssigned(:,1)));
-
-    max_max = 0;
-    min_min = 0;
+    
+    max_arr = NaN(1, length(handles.spikes_data.assignedNegative));
+    min_arr = NaN(1, length(handles.spikes_data.assignedNegative));
+    new_counter = 1;
     
     for i = 1:length(handles.spikes_data.assignedNegative)
         for j = 1:length(handles.spikes_data.nrAssigned(:,1))
@@ -32,14 +33,17 @@ function create_pngs(current_path)
                 for k = 1:length(handles.spikes_data.nrAssigned(:,1))
                     if handles.spikes_data.nrAssigned(k,1) == handles.spikes_data.nrAssigned(j,1)
                         sieved(counter_list(k),:,k) = downsample(handles.spikes_data.newSpikesNegative(i,:),4,2);
-
-                        if max(sieved(counter_list(k),:,k)) > max_max
-                            max_max = max(sieved(counter_list(k),:,k));
-                        end
-                        if min(sieved(counter_list(k),:,k)) < min_min
-                            min_min = min(sieved(counter_list(k),:,k));
-                        end
-
+                        
+                        max_arr(new_counter) = max(sieved(counter_list(k),:,k));
+                        min_arr(new_counter) = min(sieved(counter_list(k),:,k));
+                        
+%                         if max(sieved(counter_list(k),:,k)) > max_max
+%                             max_max = max(sieved(counter_list(k),:,k));
+%                         end
+%                         if min(sieved(counter_list(k),:,k)) < min_min
+%                             min_min = min(sieved(counter_list(k),:,k));
+%                         end
+                        new_counter = new_counter + 1;
                         counter_list(k) = counter_list(k) + 1;
                         break;
                     end
@@ -47,10 +51,17 @@ function create_pngs(current_path)
             end
         end
     end
+    
     for i = 1:length(counter_list)
         counter_list(i) = counter_list(i) - 1;
     end
-
+    
+    max_arr = max_arr(1:new_counter-1);
+    min_arr = min_arr(1:new_counter-1);
+    
+    max_max = prctile(max_arr, 97.5) + 50;
+    min_min = prctile(min_arr, 2.5) - 50;
+    
     sieved_means = nanmean(sieved, 1);
     meandata = cell(4, length(handles.spikes_data.nrAssigned(:,1)));
     for i = 1:length(handles.spikes_data.nrAssigned(:,1))
@@ -156,6 +167,8 @@ function create_pngs(current_path)
     
     cd(channel_path);
 end
+
+
 
 function [f,Pxxn,tvect,Cxx] = psautospk(spk,tstep,nfft,window,noverlap,dflag)
 
