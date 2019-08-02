@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%% To be run from channel directory %%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%% in session_merged. Output cell   %%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%% directories will be created in   %%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%% original session directories     %%%%%%%%%%%%%%%%%%%
+
 function varargout = combined_inspection(varargin)
 
 % Begin initialization code - DO NOT EDIT
@@ -18,6 +23,25 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+
+function [handles] = realign_spikes_data(hObject, eventdata, handles)
+
+    stacked = NaN(515, length(handles.spikes_data.newTimestampsNegative)); % 256 + 256 + 1 + 1 + 1
+    stacked(1,:) = handles.spikes_data.allSpikeInds;
+    stacked(2,:) = handles.spikes_data.newTimestampsNegative;
+    stacked(3,:) = handles.spikes_data.assignedNegative;
+    stacked(4:259,:) = handles.spikes_data.newSpikesNegative';
+    stacked(260:515,:) = handles.spikes_data.allSpikesCorrFree';
+    
+    stacked = sortrows(stacked',1)';
+    
+    handles.spikes_data.allSpikeInds = stacked(1,:);
+    handles.spikes_data.newTimestampsNegative = stacked(2,:);
+    handles.spikes_data.assignedNegative = stacked(3,:);
+    handles.spikes_data.newSpikesNegative = stacked(4:259,:)';
+    handles.spikes_data.allSpikesCorrFree = stacked(260:515,:)';
+    
+guidata(hObject, handles);   
 
 
 function [handles] = initialize_data(hObject, eventdata, handles)
@@ -65,6 +89,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
         handles.spikes_data.nrAssigned = flip(handles.spikes_data.nrAssigned);
     end
     cd(channel_path);
+    
+    handles = realign_spikes_data(hObject, eventdata, handles);
 
     disp(handles.spikes_data.nrAssigned);
 
@@ -183,6 +209,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     disp('raw trace round noise check:');
     disp(handles.noise_status2);  
     handles.noise_status = handles.noise_status | handles.noise_status2 | handles.noise_status3;
+%     handles.noise_status = zeros(1,length(handles.spikes_data.nrAssigned(:,1))); %debug
+    
     
     disp(handles.noise_status);
     
@@ -1539,6 +1567,7 @@ function export1_Callback(hObject, eventdata, handles)
     disp(noise_labels);
 %     save('changes.mat', 'new', 'orig', 'noise_labels');
 
+    
     assignedNegative_final = handles.spikes_data.assignedNegative;
     for i = 1:length(handles.spikes_data.assignedNegative)
         for j = 1:length(handles.snap_nrAssigned(:,1))
@@ -1636,6 +1665,16 @@ function export1_Callback(hObject, eventdata, handles)
                 string_temp = strcat('cell',num2str(j));
             end               
             
+            components = NaN(1,length(handles.spikes_data.nrAssigned(:,1)));
+            component_count = 1;
+            for m = 1:length(handles.snap_nrAssigned(:,1))
+                if handles.spikes_data.nrAssigned(m,1) == to_create(j)
+                    components(component_count) = handles.snap_nrAssigned(m,1);
+                    component_count = component_count + 1;
+                end
+            end
+            components = components(1:component_count-1);
+            
             disp(string_temp); %num2str(to_create(j))
             mkdir(string_temp);
             cd(string_temp);
@@ -1656,8 +1695,9 @@ function export1_Callback(hObject, eventdata, handles)
             disp(length(timestamps));
             strain.timestamps = timestamps/1000;
             strain.spikeForm = nanmean(waves, 1);
+            strain.components = components;
             save('spiketrain.mat', '-struct', 'strain');            
-            writetable(array2table(timestamps), 'spiketrain.csv');
+            % writetable(array2table(timestamps), 'spiketrain.csv');
             cd(temp2);
         end
     end
@@ -1680,13 +1720,29 @@ function toggle2_Callback(hObject, eventdata, handles)
         hold(handles.long2, 'on');
         text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
         
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
                     
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
                     plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
-                    text(handles.long2, x_pos,min(handles.data_bot) + 0.25*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end                
+                    
+                    if top_bot == 1
+                        text(handles.long2, x_pos,min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long2, x_pos,max(handles.data_bot) - 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1722,13 +1778,31 @@ function toggle1_Callback(hObject, eventdata, handles)
         hold(handles.long1, 'on');
         text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
         
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
+            
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
                     
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
                     plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
-                    text(handles.long1, x_pos,min(handles.data_top) + 0.25*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end
+                    
+                    if top_bot == 1
+                        text(handles.long1, x_pos,min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long1, x_pos,max(handles.data_top) - 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1759,13 +1833,30 @@ function long2_left_Callback(hObject, eventdata, handles)
         handles.long2_plot = plot(handles.long2, handles.data_bot, 'visible', 'on');
         hold(handles.long2, 'on');
         text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
-        
+
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
                     plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
-                    text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end
+                    
+                    
+                    if top_bot == 1
+                        text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long2, x_pos, max(handles.data_bot) - 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1790,12 +1881,30 @@ function long2_right_Callback(hObject, eventdata, handles)
         hold(handles.long2, 'on');
         text(handles.long2, 5,min(handles.data_bot) + 0.05*(max(handles.data_bot) - min(handles.data_bot)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_bot)/1800000)),'FontSize',20);
         
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_bot) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 501
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_bot) + 500;
                     plot(handles.long2, [x_pos x_pos], [max(handles.data_bot), min(handles.data_bot)], '-.');
-                    text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end
+                    
+                    if top_bot == 1
+                        text(handles.long2, x_pos, min(handles.data_bot) + 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long2, x_pos, max(handles.data_bot) - 0.1*(max(handles.data_bot) - min(handles.data_bot)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1820,12 +1929,31 @@ function long1_left_Callback(hObject, eventdata, handles)
         hold(handles.long1, 'on');
         text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
         
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
                     plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
-                    text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end
+                    
+                    
+                    if top_bot == 1
+                        text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long1, x_pos, max(handles.data_top) - 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1851,12 +1979,29 @@ function long1_right_Callback(hObject, eventdata, handles)
         hold(handles.long1, 'on');
         text(handles.long1, 5,min(handles.data_top) + 0.05*(max(handles.data_top) - min(handles.data_top)),strcat('Minute: ', num2str(handles.spikes_data.allSpikeInds(handles.updated_index_top)/1800000)),'FontSize',20);
         
+        top_bot = 1;
         for j = 1:length(handles.spikes_data.allSpikeInds)
+            if top_bot == 1
+                top_bot = 0;
+            else
+                top_bot = 1;
+            end
             if handles.spikes_data.allSpikeInds(j) > handles.spikes_data.allSpikeInds(handles.updated_index_top) - 500
                 if handles.spikes_data.allSpikeInds(j) < handles.spikes_data.allSpikeInds(handles.updated_index_top) + 501
                     x_pos = handles.spikes_data.allSpikeInds(j) - handles.spikes_data.allSpikeInds(handles.updated_index_top) + 500;
                     plot(handles.long1, [x_pos x_pos], [max(handles.data_top), min(handles.data_top)], '-.');
-                    text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),num2str(handles.spikes_data.assignedNegative(j)),'FontSize',15);
+                    
+                    
+                    cluster_label = num2str(handles.spikes_data.assignedNegative(j));
+                    if strcmp(cluster_label, '99999999')
+                        cluster_label = '0';
+                    end                    
+                    
+                    if top_bot == 1
+                        text(handles.long1, x_pos, min(handles.data_top) + 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    else
+                        text(handles.long1, x_pos, max(handles.data_top) - 0.1*(max(handles.data_top) - min(handles.data_top)),cluster_label,'FontSize',15);
+                    end
                 else
                     break;
                 end
@@ -1909,14 +2054,3 @@ function noise1_Callback(hObject, eventdata, handles)
     handles = update_colors(hObject, eventdata, handles);
         
 guidata(hObject, handles);
-
-
-
-
-
-
-
-
-
-
-
