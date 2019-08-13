@@ -146,65 +146,7 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     disp('autocorr round noise check:');
     handles.noise_status3 = flip(handles.autocorr_noise);
     disp(handles.noise_status3);
-    
-%     indices = handles.spikes_data.allSpikeInds;
-% 
-%     flagged = zeros(1, length(indices));
-% 
-%     for i = 1:length(indices)
-%         central_peak = handles.hp_trace(indices(i));
-%         left = max(1, indices(i) - 500);
-%         right = min(length(handles.hp_trace), indices(i) + 500);
-% 
-%         window = handles.hp_trace(left:right);
-%         if central_peak < 0
-%             window = -window;
-%         end
-% 
-%         thres = max(window);
-% 
-%         peaks = [];
-%         warning('off','signal:findpeaks:largeMinPeakHeight');
-%         while length(peaks) < 5
-%             thres = thres * 0.95;
-%             [peaks, pos] = findpeaks(window, 'MinPeakHeight', thres, 'MinPeakDistance', 20);
-%         end
-%         time_diff = diff(pos);
-%         median_val = median(time_diff);
-%         counter = 0;
-%         for j = 1:length(time_diff)
-%             if abs(median_val - time_diff(j)) < 10
-%                 counter = counter + 1;
-%             end
-%         end
-%         if counter/length(time_diff) > 0.75
-%             for j = 1:length(indices)
-%                 if abs(indices(j) - indices(i)) < 500
-%                     flagged(j) = 1;
-%                 end
-%             end
-%         end
-%     end
-%     sum(flagged)
-%     length(flagged)
-%     flagged_count = zeros(1,length(handles.counter_list));
-%     for i = 1:length(flagged)
-%         if flagged(i) == 1
-%             for j = 1:length(handles.distinct_plots)
-%                 if handles.distinct_plots(j) == handles.spikes_data.assignedNegative(i)
-%                     flagged_count(j) = flagged_count(j) + 1;
-%                 end
-%             end
-%         end
-%     end
-%     disp(flagged_count);
-%     for i = 1:length(flagged_count)
-%         ratio = flagged_count(i)/handles.spikes_data.nrAssigned(i,2);
-%         disp(ratio);
-%         if ratio >= 0.2
-%             handles.noise_status2(i) = 1;
-%         end
-%     end
+   
         
     disp('raw trace round noise check:');
     disp(handles.noise_status2);  
@@ -445,13 +387,24 @@ function small_click(hObject, eventdata, count)
 
     handles = guidata(hObject);
     index = count + 15*(handles.current_page - 1);
+    disp(index);
     
     figHandle = ancestor(hObject, 'figure');
     clickType = get(figHandle, 'SelectionType');
     
+    disp('current noise status');
+    disp(handles.noise_status);
     if strcmp(clickType, 'alt')
         disp('right click');
-        if handles.noise_status(index) == 0
+        for i = 1:length(handles.noise_status)
+            if handles.snap_nrAssigned(i) == handles.distinct_plots(index)
+                base_index = i;
+                break;
+            end
+        end
+        
+        if handles.noise_status(base_index) == 0
+            disp('apparently not noise');
             if handles.candidates(index) == 1
                 handles.candidates(index) = 0;
             else
