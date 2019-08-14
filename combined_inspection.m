@@ -311,18 +311,30 @@ function [handles] = page_plots(hObject, eventdata, handles)
         [children, indices, children_length] = find_children(handles.distinct_plots(i), hObject, eventdata, handles);
 
         for j = 1:length(indices)
-            plot(handles.small_arr(count), 1:64, handles.sieved_means_preserved(:,indices(j)), 'LineWidth', 1,'Hittest','off');
+            plot(handles.small_arr(count), 1:64, handles.sieved_means_preserved(:,indices(j)), 'LineWidth', 1,'Hittest','off', 'Color', 'black');
         end
         
-        title(handles.small_arr(count), strjoin(cellstr(num2str(children)), ' '));
+        set(handles.small_arr(count), 'XTickLabel', []);
+        
+        title(handles.small_arr(count), strjoin(cellstr(num2str(children)), ' '), 'FontSize', 15);
         
         for j = 1:length(handles.snap_nrAssigned(:,1))
             if handles.snap_nrAssigned(j,1) == handles.distinct_plots(i)
                 if handles.noise_status(j) == 1
-                    title(handles.small_arr(count), strcat(strjoin(cellstr(num2str(children)), ' '), ' (noise)'));
+                    title(handles.small_arr(count), strcat(strjoin(cellstr(num2str(children)), ' '), ' (noise)'), 'FontSize', 15);
                 end
             end
         end
+        
+        total_size = 0;
+        for j = 1:length(indices)
+            total_size = total_size + handles.snap_nrAssigned(indices(j),2);
+        end
+        disp(total_size);
+        text(handles.small_arr(count), 0, handles.min_min,num2str(total_size), ...
+            'HorizontalAlignment', 'left', ...
+            'VerticalAlignment', 'bottom', 'FontSize', 15);
+            
         hold(handles.small_arr(count), 'off');
 
         
@@ -346,7 +358,9 @@ function [handles] = update_list(target_index, hObject, eventdata, handles)
         [children, ~, count] = find_children(handles.distinct_plots(target_index), hObject, eventdata, handles);
 
         if length(children) > 1
-            set(handles.noise1, 'visible', 'off');
+            % set(handles.noise1, 'visible', 'off'); 140819 edit
+            set(handles.noise1, 'visible', 'on'); 
+            set(handles.noise1,'Value',0);
         else
             set(handles.noise1, 'visible', 'on');
             for i = 1:length(handles.snap_nrAssigned(:,1))
