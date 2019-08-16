@@ -16,7 +16,7 @@ end
 
 %get timestamps and header info
 handles = initFilter(handles);
-[timestampsRaw, nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion );
+[timestampsRaw, nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion , handles.blocksize);
 handles.nrSamples=nrSamples;
 
 
