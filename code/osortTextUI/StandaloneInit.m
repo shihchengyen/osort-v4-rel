@@ -9,7 +9,7 @@ function handles = StandaloneInit( handles , tillBlocks, prewhiten, alignMethod,
 
 handles = initFilter(handles);
 %read timestamps
-[timestamps,nrBlocks,nrSamples,sampleFreqInHeader,~,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion );
+[timestamps,nrBlocks,nrSamples,sampleFreqInHeader,~,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion , handles.blocksize);
 handles.nrSamples=nrSamples;
 
 if length(headerInfo)>0
