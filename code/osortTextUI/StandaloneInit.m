@@ -66,7 +66,7 @@ handles.filteredSignal=filteredSignal;
 handles.noiseTraces=noiseTraces;
 
 %estimate s.d. of raw signal
-handles.stdEstimateOrig = calculateStdEstimate(stdEstimates); %mean(stdEstimates);
+handles.stdEstimateOrig = calculateStdEstimate(stdEstimates); %mean(stdEstimates); % Basically finding the mean
 ['std estimate is ' num2str(handles.stdEstimateOrig)]
 
 handles.allSpikesNegative=allSpikes;
