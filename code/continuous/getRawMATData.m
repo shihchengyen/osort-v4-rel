@@ -13,7 +13,8 @@ end
 
 % h = matfile(filename);
 h = load(filename); % HM edit
-h = h.rw.data; % HM edit
+% h = h.rw.data; % HM edit
+h = h.rh.data;
 
 % Check if this file has a time offset variable
 if isfield(h,'timestartOffset')

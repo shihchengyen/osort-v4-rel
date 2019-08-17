@@ -10,7 +10,7 @@ end
 
 %get timestamps and header info
 handles = initFilter(handles);
-[timestampsRaw, nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion , handles.blocksize);
+[timestampsRaw, nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo, handles.blocksize] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion);
 handles.nrSamples=nrSamples;
 if length(headerInfo)>0
     %tmp=headerInfo(15);

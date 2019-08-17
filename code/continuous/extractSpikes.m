@@ -59,6 +59,7 @@ switch(detectionMethod)
         %---STD
         upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
         upperlim=ones(length(runStd2),1)*upperlimFixed;
+        disp(horzcat('thresh = ', num2str(upperlimFixed)));
     case METHOD_EXTRACTION_AMPP   %amplitude thresholding method (positive)
         runStd2=filteredSignal;
         upperlimFixed = params.extractionThreshold * median(abs(filteredSignal)/0.6745);
