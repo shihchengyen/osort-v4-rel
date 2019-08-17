@@ -113,7 +113,7 @@ paramsIn.detectionMethod=1;
 dp.kernelSize=18; 
 paramsIn.detectionParams=dp;
 % extraction threshold
-extractionThreshold = 6;  
+extractionThreshold = 5;  
 
 thres = [repmat(extractionThreshold, 1, length(filesToProcess))];
 
