@@ -1038,7 +1038,7 @@ function [handles] = details1_bot(hObject, eventdata, handles)
                     ind2 = find(arr2 > 20);
                     arr2(ind2) = [];
                     
-                    x2 = histogram(handles.ac2t, arr2,'BinWidth',1);
+                    x2 = histogram(handles.ac2t, arr2, handles.edges10);
                     single_sweep_binned = [x2.Values, zeros(1,10-length(x2.Values))]';
                     maximum = nchoosek(length(curr_times_spike_train),2);
                     arr1 = NaN(1,maximum);
@@ -1060,7 +1060,7 @@ function [handles] = details1_bot(hObject, eventdata, handles)
                     ind1 = find(arr1 > 20);
                     arr1(ind1) = [];
 
-                    x1 = histogram(handles.ac2t, arr1,'BinWidth',1);
+                    x1 = histogram(handles.ac2t, arr1, handles.edges10);
                     exhaustive_binned = [x1.Values, zeros(1,10-length(x1.Values))]';
                     
                     diff_binned = exhaustive_binned - single_sweep_binned;                    
@@ -1076,9 +1076,9 @@ function [handles] = details1_bot(hObject, eventdata, handles)
                         cla reset;
                     end
 
-                    x2 = histogram(handles.ac2, arr2_long,'BinWidth',10);
+                    x2 = histogram(handles.ac2, arr2_long, handles.edges500);
                     single_sweep_binned = [x2.Values, zeros(1,50-length(x2.Values))]';
-                    x1 = histogram(handles.ac2, arr1_long,'BinWidth',10);
+                    x1 = histogram(handles.ac2, arr1_long, handles.edges500);
                     exhaustive_binned = [x1.Values, zeros(1,50-length(x1.Values))]';
                     diff_binned = exhaustive_binned - single_sweep_binned;
                     if length(diff_binned) > 0
@@ -1315,7 +1315,7 @@ function details1_Callback(hObject, eventdata, handles)
                     ind2 = find(arr2 > 20);
                     arr2(ind2) = [];
                     
-                    x2 = histogram(handles.ac1t, arr2,'BinWidth',1);
+                    x2 = histogram(handles.ac1t, arr2, handles.edges10);
                     single_sweep_binned = [x2.Values, zeros(1,10-length(x2.Values))]';
                     
                     maximum = nchoosek(length(curr_times_spike_train),2);
@@ -1338,7 +1338,7 @@ function details1_Callback(hObject, eventdata, handles)
                     ind1 = find(arr1 > 20);
                     arr1(ind1) = [];
 
-                    x1 = histogram(handles.ac1t, arr1,'BinWidth',1);
+                    x1 = histogram(handles.ac1t, arr1, handles.edges10);
                     exhaustive_binned = [x1.Values, zeros(1,10-length(x1.Values))]';
                     
                     diff_binned = exhaustive_binned - single_sweep_binned;
@@ -1354,9 +1354,9 @@ function details1_Callback(hObject, eventdata, handles)
                         cla reset;
                     end
 
-                    x2 = histogram(handles.ac1, arr2_long,'BinWidth',10);
+                    x2 = histogram(handles.ac1, arr2_long, handles.edges500);
                     single_sweep_binned = [x2.Values, zeros(1,50-length(x2.Values))]';
-                    x1 = histogram(handles.ac1, arr1_long,'BinWidth',10);
+                    x1 = histogram(handles.ac1, arr1_long, handles.edges500);
                     exhaustive_binned = [x1.Values, zeros(1,50-length(x1.Values))]';
                     diff_binned = exhaustive_binned - single_sweep_binned;
                     if length(diff_binned) > 0
