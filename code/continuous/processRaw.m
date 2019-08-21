@@ -67,6 +67,36 @@ if runs<startWithBlock
     disp(['warning: startWithBlock<runs']);
 end
 
+% % HM Edit
+% % Calculate global power threshold for spike detection 
+% % 2-step process: 1. Remove spikes larger than 3 s.d. 2. Calculate
+% % threshold from de-spiked data
+% % Load whole data from file
+% [timestampsRaw,dataSamplesRaw] = getRawData( filename, 1, totNrSamples, params.rawFileVersion, params.samplingFreq );
+% % Calculate running std of power
+% kernelSize = 25;
+% std1 = std(dataSamplesRaw);
+% dataSamplesRaw(dataSamplesRaw > 3*std1) = mean(dataSamplesRaw < 3*std1);
+% dataSamplesCleaned = dataSamplesRaw(dataSamplesRaw < 3*mean(std1));
+% % Calculate new threshold
+% runpower = runningStd(dataSamplesRaw, kernelSize);
+% d0 = size(dataSamplesRaw,1) - size(runpower,1);
+% end0 = runpower(end);
+% runpower(end:end+d0)=end0;
+% powerthres = rms(dataSamplesRaw) + params.extractionThreshold*std(runpower);
+% 
+% 
+% 
+% 
+% runStd2 = runningStd(filteredSignal, kernelSize);  %5=0.2ms. use ~ 1ms , because thats a typical spike width
+%         d0 = size(rawSignal,1) - size(runStd2,1);
+%         end0 = runStd2(end);
+%         runStd2(end:end+d0)=end0;
+% 
+%         %---STD
+% %         upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
+%         upperlimFixed = mean( filteredSignal ) + params.extractionThreshold * mean(runStd2);
+
 for i=startWithBlock:runs
     fromInd=(i-1)*blocksize+1;
     tillInd=i*blocksize;
