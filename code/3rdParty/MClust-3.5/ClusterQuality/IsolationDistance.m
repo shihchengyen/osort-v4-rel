@@ -25,6 +25,7 @@ InClu = ismember(1:nSpikes, ClusterSpikes);
 % check there are enough spikes (but not more than half)
 if length(ClusterSpikes) < size(Fet,2) | length(ClusterSpikes)>nSpikes/2
 	IsolDist = NaN;
+    disp('too little spikes');
 	return
 end
 

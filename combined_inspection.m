@@ -184,6 +184,8 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.total_pages = ceil(handles.distinct_plot_count/3);
     handles.current_page = 1;
     handles.current_display = 1;
+    handles.edges10 = 0:1:9;
+    handles.edges500 = 0:10:499;
     
 %     handles.long1_plot = plot(handles.long1, handles.sieved_long(1,:,1), 'visible', 'off');
 %     handles.long2_plot = plot(handles.long1, handles.sieved_long(2,:,1), 'visible', 'off');
@@ -205,21 +207,46 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.noiseless_spikes = zeros(size(handles.spikes_data.newSpikesNegative));
 
     index = 1;
-
+    lenient = 0;
+    still_denied = 0;
+    
+    n_noise = 0;
+    for i = 1:length(handles.spikes_data.assignedNegative)
+        if handles.spikes_data.assignedNegative(i) == 99999999
+            n_noise = n_noise + 1;
+        end
+    end
+            
     for i = 1:length(handles.spikes_data.assignedNegative)
         if handles.spikes_data.assignedNegative(i) ~= 99999999
             handles.removing_noise_index(index) = handles.spikes_data.assignedNegative(i);
             handles.noiseless_spikes(index,:) = handles.spikes_data.newSpikesNegative(i,:);
             index = index + 1;
+        else
+            amp_max = max(handles.spikes_data.newSpikesNegative(i));
+            amp_min = min(handles.spikes_data.newSpikesNegative(i));
+            if abs(amp_max - amp_min) < 400 && n_noise > 99
+                handles.removing_noise_index(index) = handles.spikes_data.assignedNegative(i);
+                handles.noiseless_spikes(index,:) = handles.spikes_data.newSpikesNegative(i,:);
+                lenient = lenient + 1;
+                index = index + 1;                
+            else
+                still_denied = still_denied + 1;
+            end
         end
     end
+
+    total_noise = lenient + still_denied;
+    str1 = strcat(num2str(lenient), '/', num2str(total_noise), ' for pca');
+    set(handles.pca_info1, 'String', str1);
 
     handles.removing_noise_index = handles.removing_noise_index(1:index - 1);
     handles.noiseless_spikes = handles.noiseless_spikes(1:index - 1,:);
 
     disp('pca start');
     
-    handles.peak_values = max(abs(handles.noiseless_spikes), [], 2);
+    handles.energy_values = sum(handles.noiseless_spikes.^2, 2);
+    % handles.peak_values = max(abs(handles.noiseless_spikes), [], 2);
     [~, handles.pca_score, ~] = pca(handles.noiseless_spikes);
     
 %     [handles.L_R, handles.L, handles.IsolDist, handles.pca_score] = computeLratioALLclusters(handles.noiseless_spikes,handles.removing_noise_index,handles.spikes_data.nrAssigned(:,1));
@@ -248,9 +275,9 @@ function [handles] = initialize_data(hObject, eventdata, handles)
         handles.pca_overlay_3 = scatter(handles.pca3, handles.pca_overlay_data_3(:,1), handles.pca_overlay_data_3(:,2), 'x', 'r');
     hold(handles.pca3, 'off');    
     
-    handles.pca_base_1t = scatter(handles.pca1t, handles.pca_score(:,1), handles.peak_values);
-    handles.pca_base_2t = scatter(handles.pca2t, handles.pca_score(:,1), handles.peak_values);
-    handles.pca_base_3t = scatter(handles.pca3t, handles.pca_score(:,1), handles.peak_values);
+    handles.pca_base_1t = scatter(handles.pca1t, handles.pca_score(:,1), handles.energy_values);
+    handles.pca_base_2t = scatter(handles.pca2t, handles.pca_score(:,1), handles.energy_values);
+    handles.pca_base_3t = scatter(handles.pca3t, handles.pca_score(:,1), handles.energy_values);
     handles.pca_base_1t.CData = [1 1 1];
     handles.pca_base_2t.CData = [1 1 1];
     handles.pca_base_3t.CData = [1 1 1];
@@ -429,7 +456,11 @@ function small_click(hObject, eventdata, count)
             cla(handles.png6); 
             set(handles.pca_base_3, 'visible', 'off');
             set(handles.pca_overlay_3, 'visible', 'off');
+            set(handles.pca_base_3t, 'visible', 'off');
+            set(handles.pca_overlay_3t, 'visible', 'off');
+            title(handles.pca3t, '');
             cla(handles.ac3, 'reset');
+            cla(handles.ac3t, 'reset');
             cla(handles.sr3, 'reset');        
 
             if sum(handles.candidates) > 0
@@ -580,6 +611,7 @@ guidata(hObject, handles);
 function [handles] = merge_plot34(hObject, eventdata, handles)
 
         set(handles.ac3, 'visible', 'on');
+        set(handles.ac3t, 'visible', 'on');
         set(handles.sr3, 'visible', 'on');
 
         contents = zeros(1, length(handles.spikes_data.nrAssigned(:,1)));
@@ -619,9 +651,9 @@ function [handles] = merge_plot34(hObject, eventdata, handles)
         curr_times_spike_train = curr_times_spike_train(1,1:count-1);
        
          
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-        
-        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
+%         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+%         
+%         [~,~,tvect,Cxx] = psautospk2(spike_train, 1);
 %         [tvect, Cxx, ~] = autocorr_2(spike_train);
 
         time_tracker = 1;
@@ -673,16 +705,93 @@ function [handles] = merge_plot34(hObject, eventdata, handles)
         hold off
         xlim([0,(time_axis(end)+5)]);
         
-        Cxx(1) = [];
+%         Cxx(1) = [];
+% 
+%         tvect = tvect(floor(length(tvect)/2):length(tvect));
+%         Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+%         tvect = tvect(2:100);
+%         Cxx = Cxx(2:100);
+        
+%         plot(handles.ac3t, tvect(1:10), Cxx(1:10).');
+%         plot(handles.ac3, tvect, Cxx.');
 
-        tvect = tvect(floor(length(tvect)/2):length(tvect));
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        tvect = tvect(2:100);
-        Cxx = Cxx(2:100);
-        
-        plot(handles.ac3t, tvect(1:10), Cxx(1:10).');
-        plot(handles.ac3, tvect, Cxx.');
-        
+                    curr_times_spike_train = curr_times_spike_train/1000;
+                    arr2 = NaN(1,length(curr_times_spike_train));
+                    
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train) - 1
+                        if curr_times_spike_train(i+1) - curr_times_spike_train(i) <= 500
+                            arr2(index) = curr_times_spike_train(i+1) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr2 = arr2(1:index-1);
+                    arr2_long = arr2;
+                    ind2 = find(arr2 > 20);
+                    arr2(ind2) = [];
+                                        
+                    x2 = histogram(handles.ac3t, arr2, handles.edges10);
+                    single_sweep_binned = [x2.Values, zeros(1,10-length(x2.Values))]';
+                    
+                    maximum = nchoosek(length(curr_times_spike_train),2);
+                    arr1 = NaN(1,maximum);
+
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train)
+                        for j = i+1:length(curr_times_spike_train)
+                            if curr_times_spike_train(j) - curr_times_spike_train(i) > 500
+                                break;
+                            end
+                            arr1(index) = curr_times_spike_train(j) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr1 = arr1(1:index-1);
+                    arr1_long = arr1;
+                    ind1 = find(arr1 > 20);
+                    arr1(ind1) = [];
+
+                    x1 = histogram(handles.ac3t, arr1, handles.edges10);
+
+                    exhaustive_binned = [x1.Values, zeros(1,10-length(x1.Values))]';
+                    
+                    diff_binned = exhaustive_binned - single_sweep_binned;
+                              
+                    
+                    if length(diff_binned) > 0
+                        x3 = bar(handles.ac3t, 0:1:length(diff_binned)-1, [single_sweep_binned diff_binned], 'Stacked');
+                        x3(1).FaceColor = 'magenta';
+                        x3(2).FaceColor = 'blue';
+                        set(handles.ac3t, 'XLimSpec', 'Tight');
+                    else
+                        disp('being cleared');
+                        axes(handles.ac3t);
+                        cla reset;
+                    end
+
+                    x2 = histogram(handles.ac3, arr2_long, handles.edges500);
+                    single_sweep_binned = [x2.Values, zeros(1,50-length(x2.Values))]';
+                    x1 = histogram(handles.ac3, arr1_long, handles.edges500);  %%%%%%%%%%%%%%%%%%%%%
+                    x1
+                    disp(x1.Values);
+                    exhaustive_binned = [x1.Values, zeros(1,50-length(x1.Values))]';
+                    diff_binned = exhaustive_binned - single_sweep_binned;
+                    
+                    if length(diff_binned) > 0
+                        x4 = bar(handles.ac3, 0:10:499, [single_sweep_binned diff_binned], 'Stacked');
+                        x4(1).FaceColor = 'magenta';
+                        x4(2).FaceColor = 'blue';
+                        set(handles.ac3, 'XLimSpec', 'Tight');                    
+                    else
+                        axes(handles.ac3);
+                        cla reset;                        
+                    end
+                    
+
         %%%%% end autocorr/spikerates part %%%%%
 
 guidata(hObject, handles);
@@ -847,9 +956,9 @@ function [handles] = details1_bot(hObject, eventdata, handles)
         curr_times_spike_train = curr_times_spike_train(1,1:count-1);
        
          
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+%         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
         
-        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
+%         [~,~,tvect,Cxx] = psautospk2(spike_train, 1);
 %         [tvect, Cxx, ~] = autocorr_2(spike_train);
 
         time_tracker = 1;
@@ -901,16 +1010,88 @@ function [handles] = details1_bot(hObject, eventdata, handles)
         hold off
         xlim([0,(time_axis(end)+0.05)]);
         
-        Cxx(1) = [];
+%         Cxx(1) = [];
+% 
+%         tvect = tvect(floor(length(tvect)/2):length(tvect));
+%         Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+%         tvect = tvect(2:100);
+%         Cxx = Cxx(2:100);
+%         
+%         plot(axes_ac(2), tvect, Cxx.');
+%         plot(handles.ac2t, tvect(1:10), Cxx(1:10).');
 
-        tvect = tvect(floor(length(tvect)/2):length(tvect));
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        tvect = tvect(2:100);
-        Cxx = Cxx(2:100);
-        
-        plot(axes_ac(2), tvect, Cxx.');
-        plot(handles.ac2t, tvect(1:10), Cxx(1:10).');
-        
+
+                    curr_times_spike_train = curr_times_spike_train/1000;
+                    arr2 = NaN(1,length(curr_times_spike_train));
+
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train) - 1
+                        if curr_times_spike_train(i+1) - curr_times_spike_train(i) <= 500
+                            arr2(index) = curr_times_spike_train(i+1) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr2 = arr2(1:index-1);
+                    arr2_long = arr2;
+                    ind2 = find(arr2 > 20);
+                    arr2(ind2) = [];
+                    
+                    x2 = histogram(handles.ac2t, arr2, handles.edges10);
+                    single_sweep_binned = [x2.Values, zeros(1,10-length(x2.Values))]';
+                    maximum = nchoosek(length(curr_times_spike_train),2);
+                    arr1 = NaN(1,maximum);
+
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train)
+                        for j = i+1:length(curr_times_spike_train)
+                            if curr_times_spike_train(j) - curr_times_spike_train(i) > 500
+                                break;
+                            end
+                            arr1(index) = curr_times_spike_train(j) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr1 = arr1(1:index-1);
+                    arr1_long = arr1;
+                    ind1 = find(arr1 > 20);
+                    arr1(ind1) = [];
+
+                    x1 = histogram(handles.ac2t, arr1, handles.edges10);
+                    exhaustive_binned = [x1.Values, zeros(1,10-length(x1.Values))]';
+                    
+                    diff_binned = exhaustive_binned - single_sweep_binned;                    
+                    disp(length(0:1:length(diff_binned)-1));
+                    disp(length(diff_binned));     
+                    if length(diff_binned) > 0
+                        x3 = bar(handles.ac2t, 0:1:length(diff_binned)-1, [single_sweep_binned diff_binned], 'Stacked');
+                        x3(1).FaceColor = 'magenta';
+                        x3(2).FaceColor = 'blue';
+                        set(handles.ac2t, 'XLimSpec', 'Tight');
+                    else
+                        axes(handles.ac2t);
+                        cla reset;
+                    end
+
+                    x2 = histogram(handles.ac2, arr2_long, handles.edges500);
+                    single_sweep_binned = [x2.Values, zeros(1,50-length(x2.Values))]';
+                    x1 = histogram(handles.ac2, arr1_long, handles.edges500);
+                    exhaustive_binned = [x1.Values, zeros(1,50-length(x1.Values))]';
+                    diff_binned = exhaustive_binned - single_sweep_binned;
+                    if length(diff_binned) > 0
+                        x4 = bar(handles.ac2, 0:10:499, [single_sweep_binned diff_binned], 'Stacked');
+                        x4(1).FaceColor = 'magenta';
+                        x4(2).FaceColor = 'blue';
+                        set(handles.ac2, 'XLimSpec', 'Tight'); 
+                    else
+                        axes(handles.ac2);
+                        cla reset;                        
+                    end
+
+
         %%%%% end autocorr/spikerates part %%%%%
            
     long_arr = [handles.long1, handles.long2];
@@ -1053,9 +1234,9 @@ function details1_Callback(hObject, eventdata, handles)
         curr_times_spike_train = curr_times_spike_train(1,1:count-1);
        
          
-        spike_train = convertToSpiketrain(curr_times_spike_train, 1);
-        
-        [~,~,tvect,Cxx] = psautospk(spike_train, 1);
+%         spike_train = convertToSpiketrain(curr_times_spike_train, 1);
+%         
+%         [~,~,tvect,Cxx] = psautospk2(spike_train, 1);
 %         [tvect, Cxx, ~] = autocorr_2(spike_train); 
 
         time_tracker = 1;
@@ -1107,15 +1288,88 @@ function details1_Callback(hObject, eventdata, handles)
         hold off
         xlim([0,(time_axis(end)+0.05)]);
         
-        Cxx(1) = [];
-
-        tvect = tvect(floor(length(tvect)/2):length(tvect));
-        Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
-        tvect = tvect(2:100);
-        Cxx = Cxx(2:100);
+%         Cxx(1) = [];
+% 
+%         tvect = tvect(floor(length(tvect)/2):length(tvect));
+%         Cxx = Cxx(floor(length(Cxx)/2):length(Cxx));
+%         tvect = tvect(2:100);
+%         Cxx = Cxx(2:100);
+%         
+%         plot(axes_ac(handles.current_display), tvect, Cxx.');
+%         plot(handles.ac1t, tvect(1:10), Cxx(1:10).');
         
-        plot(axes_ac(handles.current_display), tvect, Cxx.');
-        plot(handles.ac1t, tvect(1:10), Cxx(1:10).');
+                    curr_times_spike_train = curr_times_spike_train/1000;
+                    arr2 = NaN(1,length(curr_times_spike_train));
+
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train) - 1
+                        if curr_times_spike_train(i+1) - curr_times_spike_train(i) <= 500
+                            arr2(index) = curr_times_spike_train(i+1) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr2 = arr2(1:index-1);
+                    arr2_long = arr2;
+                    ind2 = find(arr2 > 20);
+                    arr2(ind2) = [];
+                    
+                    x2 = histogram(handles.ac1t, arr2, handles.edges10);
+                    single_sweep_binned = [x2.Values, zeros(1,10-length(x2.Values))]';
+                    
+                    maximum = nchoosek(length(curr_times_spike_train),2);
+                    arr1 = NaN(1,maximum);
+
+                    index = 1;
+
+                    for i = 1:length(curr_times_spike_train)
+                        for j = i+1:length(curr_times_spike_train)
+                            if curr_times_spike_train(j) - curr_times_spike_train(i) > 500
+                                break;
+                            end
+                            arr1(index) = curr_times_spike_train(j) - curr_times_spike_train(i);
+                            index = index + 1;
+                        end
+                    end
+
+                    arr1 = arr1(1:index-1);
+                    arr1_long = arr1;
+                    ind1 = find(arr1 > 20);
+                    arr1(ind1) = [];
+
+                    x1 = histogram(handles.ac1t, arr1, handles.edges10);
+                    exhaustive_binned = [x1.Values, zeros(1,10-length(x1.Values))]';
+                    
+                    diff_binned = exhaustive_binned - single_sweep_binned;
+                    disp(length(0:1:length(diff_binned)-1));
+                    disp(length(diff_binned));
+                    if length(diff_binned) > 0
+                        x3 = bar(handles.ac1t, 0:1:length(diff_binned)-1, [single_sweep_binned diff_binned], 'Stacked');
+                        x3(1).FaceColor = 'magenta';
+                        x3(2).FaceColor = 'blue';
+                        set(handles.ac1t, 'XLimSpec', 'Tight');
+                    else
+                        axes(handles.ac1t);
+                        cla reset;
+                    end
+
+                    x2 = histogram(handles.ac1, arr2_long, handles.edges500);
+                    single_sweep_binned = [x2.Values, zeros(1,50-length(x2.Values))]';
+                    x1 = histogram(handles.ac1, arr1_long, handles.edges500);
+                    exhaustive_binned = [x1.Values, zeros(1,50-length(x1.Values))]';
+                    diff_binned = exhaustive_binned - single_sweep_binned;
+                    if length(diff_binned) > 0
+                        x4 = bar(handles.ac1, 0:10:499, [single_sweep_binned diff_binned], 'Stacked');
+                        x4(1).FaceColor = 'magenta';
+                        x4(2).FaceColor = 'blue';
+                        set(handles.ac1, 'XLimSpec', 'Tight');         
+                    else
+                        axes(handles.ac1);
+                        cla reset;                        
+                    end
+        
+        
         
         %%%%% end autocorr/spikerates part %%%%%
            
@@ -1221,7 +1475,7 @@ for i = 1:length(handles.removing_noise_index)
         if handles.removing_noise_index(i) == target_arr(j)            
             sieved_pca(counter,:) = full_pca(i,1:2);
             sieved_pcat(counter,1) = full_pca(i,1);
-            sieved_pcat(counter,2) = handles.peak_values(i);
+            sieved_pcat(counter,2) = handles.energy_values(i);
             idx(counter) = i;
             counter = counter + 1;
             break;
@@ -1230,8 +1484,8 @@ for i = 1:length(handles.removing_noise_index)
 end
 idx = idx(1:counter-1);
 
-IsolDist = IsolationDistance(pca3, idx);
-[L,L_R]=L_Ratio(pca3,idx); %Mclust function 
+IsolDist = IsolationDistance([pca3 handles.energy_values], idx);
+[L,L_R]=L_Ratio([pca3 handles.energy_values],idx); %Mclust function 
 
 
 function kick1_Callback(hObject, eventdata, handles)
@@ -1441,17 +1695,30 @@ function [handles] = refresher(hObject, eventdata, handles)
 guidata(hObject, handles);
     
 
+function [f,Pxxn,tvect,Cxx] = psautospk2(spk, tstep)
+
+    [Cxx, tvect] = xcorr(spk);
+%     pos = find(~tvect);
+%     Cxx = Cxx(pos:length(Cxx));
+%     tvect = tvect(pos:length(tvect));
+
+    f = 0;
+    Pxxn = 0;
+
+
+
+
 
 function [f,Pxxn,tvect,Cxx] = psautospk(spk,tstep,nfft,window,noverlap,dflag)
 
 
     if ( (nargin ~= 6) & (nargin ~= 2) )
       disp(' ');
-      disp('usage1: psautospk(spk,tstep) ');
+      disp('usage1: psautospk2(spk,tstep) ');
       disp(' ');
-      disp('usage2: psautospk(spk,tstep,nfft,window,noverlap,dflag) ');
+      disp('usage2: psautospk2(spk,tstep,nfft,window,noverlap,dflag) ');
       disp(' ');
-      disp('       for more information type "help psautospk" in the main');
+      disp('       for more information type "help psautospk2" in the main');
       disp('       matlab window');
       disp(' ');
       return;
@@ -1493,7 +1760,7 @@ function [f,Pxxn,tvect,Cxx] = psautospk(spk,tstep,nfft,window,noverlap,dflag)
     end;
 
     %computes the autocorrelation function
-    Cxxx = fft(Pxxx,nfft);
+    Cxxx = fft(Pxxx,nfft); % major issue here?
     %normalizes to get the usual definition of autocorrelation
     Cxxx = Cxxx/nfft;
 
