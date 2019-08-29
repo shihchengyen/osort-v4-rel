@@ -1,8 +1,8 @@
 function create_pngs(current_path)
 
-%     channel_no = current_path;
-%     disp(channel_no);
-%     handles.channel_no = strcat('channel',extractAfter(channel_no, string('channel')));
+    channel_no = current_path;
+    disp(channel_no);
+    handles.channel_no = strcat('channel',extractAfter(channel_no, string('channel')));
     handles.modification_tracker = [];
 
     channel_path = cd('./oSort/');
@@ -16,7 +16,7 @@ function create_pngs(current_path)
     handles.spikes_data = load(mat_name{1}); % 'P1_sorted_new.mat'
     cd(channel_path);
     
-    title = ['pngs_', saved_identifier];
+    title = ['pngs', handles.channel_no];
     mkdir(title);
     cd(title);
 
