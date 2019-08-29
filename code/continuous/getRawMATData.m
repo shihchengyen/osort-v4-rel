@@ -46,7 +46,7 @@ if nargin > 1
     catch
         dataSamples = dataSamplesFull(fromInd:toInd,1);
     end
-    timestamps = timeStampsFull(fromInd:toInd,1);
+    timestamps = timestampsFull(fromInd:toInd,1);
 else
     dataSamples = dataSamplesFull;
     timestamps = timestampsFull;
