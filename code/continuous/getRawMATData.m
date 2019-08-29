@@ -77,7 +77,6 @@ end
 %     end
 % end
 
-
 timestamps = timestamps + timestartOffset;
 timestamps = timestamps * 1e6; % convert Ripple data (in seconds) to Neuralynx convention (microseconds) % HM edit
 % timestamps = double(timestamps); % HM edit
