@@ -11,7 +11,6 @@ if nargin<5
     loadScaleFact=0;
 end
 
-% h = matfile(filename);
 h = load(filename); % HM edit
 % h = h.rw.data; % HM edit
 h = h.rh.data;
@@ -87,3 +86,4 @@ if loadScaleFact
    scaleFact = ElectrodesInfo.MaxDigiValue/ElectrodesInfo.MaxAnalogValue;
    dataSamples = dataSamples./double(scaleFact);
 end
+

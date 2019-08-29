@@ -7,7 +7,7 @@
 %this case,the timestamps returned will be empty.
 %
 %urut/april07
-function [timestamps,nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo] = getRawTimestamps( filename, fileFormat )
+function [timestamps,nrBlocks,nrSamples,sampleFreq,isContinous,headerInfo, blocksize] = getRawTimestamps( filename, fileFormat )
 
 %neuralynx
 if fileFormat<=2 || fileFormat==6 || fileFormat==8
@@ -39,7 +39,10 @@ if fileFormat==5
    [timestamps] = getRawMATData( filename ); 
    
    nrSamples = length(timestamps);
-   nrBlocks=nrSamples/512000;
+%    nrBlocks=nrSamples/512000; HM Edit
+   nrBlocks=4;
+   blocksize = ceil(nrSamples/nrBlocks);
+   
 
    sampleFreq=30000;	% HM edit
    isContinous=1;
@@ -52,7 +55,9 @@ if fileFormat==7
    [timestamps] = getRawMATData( filename );
 
    nrSamples = length(timestamps);
-   nrBlocks=nrSamples/512000;
+%    nrBlocks=nrSamples/512000; HM Edit
+    nrBlocks=4;
+    blocksize = ceil(nrSamples/nrBlocks);
 
    sampleFreq=0;	
    isContinous=1;

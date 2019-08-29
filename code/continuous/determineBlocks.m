@@ -8,6 +8,11 @@ if nargin<2
     blocksize=512000;
 end
 
-nrRuns = fix( totNrSamples/ blocksize ) + 1;
+% nrRuns = fix( totNrSamples/ blocksize ) + 1;
+if floor(totNrSamples/blocksize) == totNrSamples/ blocksize
+    nrRuns = totNrSamples/ blocksize;
+else
+    nrRuns = floor( totNrSamples/ blocksize ) + 1;
+end
 
 

@@ -53,6 +53,7 @@ filesAlignMin=[ ];
 
 %% global settings
 paramsIn=[];
+paramsIn.blocksize=5120000;
 
 % some systems use CSC instead of A
 paramsIn.rawFilePrefix='channel';        

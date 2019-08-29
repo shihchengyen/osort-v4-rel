@@ -9,7 +9,7 @@ function handles = StandaloneInit( handles , tillBlocks, prewhiten, alignMethod,
 
 handles = initFilter(handles);
 %read timestamps
-[timestamps,nrBlocks,nrSamples,sampleFreqInHeader,~,headerInfo] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion );
+[timestamps,nrBlocks,nrSamples,sampleFreqInHeader,~,headerInfo, handles.blocksize] = getRawTimestamps( handles.rawFilename, handles.rawFileVersion);
 handles.nrSamples=nrSamples;
 
 if length(headerInfo)>0
@@ -67,7 +67,7 @@ handles.filteredSignal=filteredSignal;
 handles.noiseTraces=noiseTraces;
 
 %estimate s.d. of raw signal
-handles.stdEstimateOrig = calculateStdEstimate(stdEstimates); %mean(stdEstimates);
+handles.stdEstimateOrig = calculateStdEstimate(stdEstimates); %mean(stdEstimates); % Basically finding the mean
 ['std estimate is ' num2str(handles.stdEstimateOrig)]
 
 handles.allSpikesNegative=allSpikes;

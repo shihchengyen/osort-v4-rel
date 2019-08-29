@@ -196,7 +196,7 @@ for i=1:length(searchIndBorders)
             fromInd = searchInds(1);
             toInd = searchInds(searchIndBorders(i));
         elseif i == size(searchIndBorders,1)
-            fromInd = searchInds(searchIndBorders(end));
+            fromInd = searchInds(searchIndBorders(end)+1);
             toInd = searchInds(size(searchInds,1));
         else
             fromInd = searchInds(searchIndBorders(i-1)+1);
