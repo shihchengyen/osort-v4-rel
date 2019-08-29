@@ -78,12 +78,9 @@ switch(detectionMethod)
         runStd2(end:end+d0)=end0;
 
         %---STD
-        upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
-% =======
-%         upperlimFixed = mean(runpowerClean) + params.extractionThreshold*std(runpowerClean); % HM Edit
+        upperlimFixed = mean(runpowerClean) + params.extractionThreshold*std(runpowerClean); % HM Edit
 % %         upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
 % %         upperlimFixed = mean( filteredSignal ) + params.extractionThreshold * mean(runStd2);
-% >>>>>>> Stashed changes
         upperlim=ones(length(runStd2),1)*upperlimFixed;
     case METHOD_EXTRACTION_AMPP   %amplitude thresholding method (positive)
         runStd2=filteredSignal;
