@@ -46,9 +46,16 @@ guidata(hObject, handles);
 
 function [handles] = initialize_data(hObject, eventdata, handles)
     
-    saved_path = pwd;
+    thres_target = strsplit(pwd, '/');
+    thres_target = thres_target{length(thres_target)};
+    disp(thres_target);
+    set(handles.text14, 'String', thres_target);
+    
+    cd('../../');
     channel_no = pwd;
+    saved_path = pwd;
     disp(channel_no);
+    
     handles.channel_no = strcat('channel',extractAfter(channel_no, string('channel')));
     handles.modification_tracker = [];
     handles.just_started = 1;
@@ -79,7 +86,9 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     
     channel_path = cd('./oSort/');
     folder_name = dir();
-    cd(strcat(folder_name(length(folder_name)).name, '/sort/'));
+    cd(thres_target);
+    cd('sort');
+    % cd(strcat(folder_name(length(folder_name)).name, '/sort/'));
     folder_name = dir();
     cd(folder_name(length(folder_name)).name);
     mat_name_d = dir('*_sorted_new.mat');
@@ -108,10 +117,20 @@ function [handles] = initialize_data(hObject, eventdata, handles)
 
     handles.distinct_plots = temp_arr;
     handles.distinct_plot_count = length(temp_arr);
-
-    handles.autocorr_noise = load('./pngs/autocorr_noise.mat');
-    handles.autocorr_noise = handles.autocorr_noise.tosave;
-    handles.meandata = load('./pngs/meandata.mat');
+    
+    finding_suffix = dir(strcat('pngs_', thres_target));
+    old_format = 0;
+    if length(finding_suffix) == 0
+        old_format = 1;
+        handles.autocorr_noise = load('./pngs/autocorr_noise.mat');
+        handles.autocorr_noise = handles.autocorr_noise.tosave;
+        handles.meandata = load('./pngs/meandata.mat');
+    else
+        handles.autocorr_noise = load(strcat('./pngs_', thres_target, '/autocorr_noise.mat'));
+        handles.autocorr_noise = handles.autocorr_noise.tosave;
+        handles.meandata = load(strcat('./pngs_', thres_target, '/meandata.mat'));
+    end
+        
     handles.meandata = handles.meandata.meandata;
 
     handles.counter_list = cell2mat(handles.meandata(2,:));
@@ -177,7 +196,11 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     handles.png_stuff = cell(length(handles.counter_list), 3);
 
     for i = 1:length(handles.counter_list)
-        file_name = char(strcat('./pngs/cluster',string(handles.spikes_data.nrAssigned(i,1)),'.png'));
+        if old_format == 1
+            file_name = char(strcat('./pngs/cluster',string(handles.spikes_data.nrAssigned(i,1)),'.png'));
+        else
+            file_name = char(strcat('./pngs_', thres_target, '/cluster',string(handles.spikes_data.nrAssigned(i,1)),'.png'));
+        end
         [handles.png_stuff{i,1}, handles.png_stuff{i,2}, handles.png_stuff{i,3}] = imread(file_name);
     end
    
