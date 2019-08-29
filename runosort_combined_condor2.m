@@ -59,6 +59,8 @@ function [output] = runosort_combined_condor2(channel_name)
             mkdir(channels_identified{i,1});
             cd(channels_identified{i,1}); % in channel under merged now
             
+            clear_old;
+            
             generate_txt_command = edit_condor_base;
             first_path = 1;
             for j = 3:2+channels_identified{i,2}
@@ -109,6 +111,8 @@ function [output] = runosort_combined_condor2(channel_name)
                     past = cd(split2{length(split2)});
                     mkdir(channels_identified{i,1});
                     cd(channels_identified{i,1});
+                    
+                    clear_old;
                     
                     generate_txt_command = edit_condor_base;
                     first_path = 1;
@@ -250,4 +254,51 @@ function [channels_identified] = comb_channels(full_day_path, channel_name)
     cd(origin);
     
 end
+
+function clear_old
+
+    track_thres = which('runosort.m');
+
+        fid = fopen(track_thres);
+
+        tline = fgetl(fid);
+        while ischar(tline)
+            if length(strfind(tline, 'paramsIn.detectionMethod=')) ~= 0
+                if strncmpi(tline, '%', 1) == 0
+                    method_save = tline;
+                end
+            end
+            if length(strfind(tline, 'dp.kernelSize=')) ~= 0
+                if strncmpi(tline, '%', 1) == 0
+                    kernel_save = tline;
+                end
+            end
+            if length(strfind(tline, 'extractionThreshold = ')) ~= 0
+                if strncmpi(tline, '%', 1) == 0
+                    thres_save = tline;
+                end
+            end                            
+            tline = fgetl(fid);
+        end                    
+
+    t1 = extractAfter(method_save, '=');
+    t1 = strtrim(extractBefore(t1, ';'))
+    t2 = extractAfter(kernel_save, '=');
+    t2 = strtrim(extractBefore(t2, ';'))
+    t3 = extractAfter(thres_save, '=');
+    t3 = strtrim(extractBefore(t3, ';'))
+
+    space = ' ';
+    target_clearing = strcat('*detect', t1, 'Thresh', t3, 'kern', t2, '*"');
+    disp(target_clearing);
+    final_command = strcat('for i in `find . -name "', target_clearing, '`; do echo $i; rm -r $i; done;');
+    disp(final_command);
+    unix(char(final_command));
+
+end
+
+
+
+
+
 
