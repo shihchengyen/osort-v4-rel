@@ -94,7 +94,8 @@ for i=1:length(handles.useNegative)
                 % 1000*512 datapoints are in each block; for each entry in timestampsRaw there are 512 entries; 
                 % thus,each block will cover 1000 entries of timestampsRaw
                 if handles.rawFileVersion == 5
-                    block(j) = floor(indMin / (512*1000)) + 1;
+%                     block(j) = floor(indMin / (512*1000)) + 1;
+                    block(j) = floor(indMin / handles.blocksize) + 1;
                 else
                     block(j) = floor(indMin / 1000)+1;
                 end
@@ -130,7 +131,7 @@ for i=1:length(handles.useNegative)
                 paramsRaw.prefix=handles.rawFilePrefix;
             end
             paramsRaw.rawFilePostfix = handles.rawFilePostfix;
-            [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets, allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
+            [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim, upperlims,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets, allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
             
             
             

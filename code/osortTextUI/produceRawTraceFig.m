@@ -52,7 +52,7 @@ for k=1:length(tillBlocks)
         paramsRaw.prefix=handles.rawFilePrefix;
     end
     paramsRaw.rawFilePostfix = handles.rawFilePostfix;
-    [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets,allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
+    [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2, upperlim, upperlims,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets,allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
 
     %scale if ADbitVolts value is available
     if ADbitVolts~=1

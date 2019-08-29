@@ -110,10 +110,10 @@ paramsIn.peakAlignMethod=1;
 % for power detection method
 % 1 power, 2 T pos, 3 T min, 4 T abs, 5 wavelet
 paramsIn.detectionMethod=1; 
-dp.kernelSize=18; 
+dp.kernelSize=25; 
 paramsIn.detectionParams=dp;
 % extraction threshold
-extractionThreshold = 5;  
+extractionThreshold = 8;  
 
 thres = [repmat(extractionThreshold, 1, length(filesToProcess))];
 

@@ -30,7 +30,7 @@ nrSpikesFound=[];
 for i=1:length(thresholds)
     paramsRaw.extractionThreshold = thresholds(i);
 
-    [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected,blockOffsets, allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
+    [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim, upperlims,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected,blockOffsets, allSpikeInds ] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw);
 
     nrSpikesFound(i) = size(allSpikes,1);
 end

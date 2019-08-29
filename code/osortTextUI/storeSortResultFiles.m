@@ -29,6 +29,7 @@ allSpikesCorrFree=[];
 allSpikeInds = handles.allSpikeInds; % HM Edit - Indices (location) of every spike
 nrAssignedPreTrim = [];
 nrAssigned = [];
+upperlims = handles.upperlims;
 if isfield(handles,'allSpikesCorrFree')
     allSpikesCorrFree=handles.allSpikesCorrFree;
 end
@@ -124,6 +125,6 @@ filenameOut
 %save(filenameOut, 'useMUA', 'versionCreated', 'noiseTraces','allSpikesNoiseFree','allSpikesCorrFree','newSpikesPositive', 'newSpikesNegative', 'newTimestampsPositive', 'newTimestampsNegative','assignedPositive','assignedNegative', 'usePositive', 'useNegative','stdEstimateOrig','stdEstimate','paramsUsed','savedTime','-v6');
 
 % HM Edit - added additional output 'allSpikeInds'
-save(filenameOut, 'useMUA', 'versionCreated', 'noiseTraces','allSpikesNoiseFree','allSpikesCorrFree','newSpikesPositive', 'newSpikesNegative', 'newTimestampsPositive', 'newTimestampsNegative','assignedPositive','assignedNegative', 'usePositive', 'useNegative', 'allSpikeInds', 'stdEstimateOrig','stdEstimate','paramsUsed','savedTime', 'scalingFactor','nrAssignedPreTrim','nrAssigned');
+save(filenameOut, 'useMUA', 'versionCreated', 'upperlims','noiseTraces','allSpikesNoiseFree','allSpikesCorrFree','newSpikesPositive', 'newSpikesNegative', 'newTimestampsPositive', 'newTimestampsNegative','assignedPositive','assignedNegative', 'usePositive', 'useNegative', 'allSpikeInds', 'stdEstimateOrig','stdEstimate','paramsUsed','savedTime', 'scalingFactor','nrAssignedPreTrim','nrAssigned');
 
 'stored finished'
