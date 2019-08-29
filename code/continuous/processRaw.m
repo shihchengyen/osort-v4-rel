@@ -29,7 +29,7 @@
 % Added spikeTimestamps as additional output - indices of timestamp for
 % each spike peak
 
-function [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets, allSpikeInds] = processRaw(filename, totNrSamples, Hd, params )
+function [allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim, upperlims,stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets, allSpikeInds] = processRaw(filename, totNrSamples, Hd, params )
 blockOffsets=[];
 
 howManyBlocks = params.howManyBlocks;
@@ -59,6 +59,7 @@ filteredSignal=[];
 rawTraceSpikes=[];
 runStd2=[];
 upperlim=[];
+upperlims = []; % HM Edit (collate actual extraction thresholds used)
 stdEstimates=[];
 
 noiseTraces=[];
@@ -126,6 +127,7 @@ for i=startWithBlock:runs
     t1=clock; 
     [rawMean, filteredSignal, rawTraceSpikes,spikeWaveforms, spikeTimestamps, runStd2, upperlim, noiseTracesTmp] = extractSpikes( dataSamplesRaw, Hd, params );
     disp(['time for extraction ' num2str(etime(clock,t1))]);
+    upperlims = [upperlims; upperlim(1)]; % HM Edit
 
     stdEstimates(i) = std(filteredSignal);
 

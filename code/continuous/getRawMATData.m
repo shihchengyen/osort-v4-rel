@@ -24,20 +24,7 @@ end
 disp(['OSort Mat format load. Timestart offset used is: ' num2str(timestartOffset)]);
 
 if nargin>1
-    try
-    dataSamples(:,1) = h.analogData( 1,fromInd:toInd ); % HM edit
-    catch
-        dataSamples(:,1) = h.analogData( fromInd:toInd ,1);  % HM edit
-    end
-    dataSamples = double(dataSamples);
-    
-%     timestamps(:,1) = 1:length(dataSamples); %%%%% WHAT????
-%     timestamps(:,1) =  [fromInd:toInd].*(1e6/samplingFreq);
-%     timestamps(:,1) = h.analogTime(fromInd:toInd); % HM edit
-    timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
-    timestamps = timestamps(fromInd:toInd,1); % constrain to specified block
-else
-    
+
     try
 %         timestamps(:,1) = (1:length(h.analogData)).* (1e6/samplingFreq);
     timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;

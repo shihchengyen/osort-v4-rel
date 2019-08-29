@@ -18,9 +18,11 @@ if thresholdMethod==1
 else
 	Cinv = eye(256);
 
-	v = 256 -76;% kaminskij when avoiding testing of edges more in sortSpikesOnline exact method
-	alpha=0.05;	
-	thres = chi2inv( 1-alpha,v);
+% 	v = 256 -76;% kaminskij when avoiding testing of edges more in sortSpikesOnline exact method
+    v = 101; % HM Edit : since we're sorting only on the 50-150th data points = 101 degrees of freedom. 
+%     alpha=0.05;	
+	alpha=0.05;	% HM Edit
+	thres = chi2inv( 1-alpha,v); % Find a value that exceeds 95% of the samples from a chi-square distribution with 76 degrees of freedom. You would observe values greater than 97.3510 only 5% of the time by chance.
 	stdEstimate=thres;
     
     sortInput = handles.allSpikesCorrFree;

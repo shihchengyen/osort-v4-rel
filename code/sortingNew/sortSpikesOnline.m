@@ -24,7 +24,11 @@ noiseCluster=CLUSTERID_NOISE_CLUSTER;
 %how many datapoints per spike
 nrDatapoints=size(spikes,2);
 
-baseSpikes=spikes(1,:);		% mean spikes of each cluster (here called baseSpikes)
+% baseSpikes=spikes(1,:);		% mean spikes of each cluster (here called baseSpikes) % HM Edit
+% Find max sized spike to use as first sorting spike
+maxamp = max(abs(spikes(:,95)));
+maxampind = find(abs(spikes(:,95)) == maxamp,1);
+baseSpikes = spikes(maxampind,:);
 baseSpikesCounter=1;		% number of spikes associated to each cluster
 baseSpikesID=[1 1];		% mapping of the ID (unique) of each cluster to index in base Spikes. the ID is used to assign spikes in the variable assigned.
 IDs=1;				% next free ID (used for creation of new clusters)
@@ -40,9 +44,9 @@ if nrDatapoints==256
         weights(1:20)=0;
         weights(201:256)=0;
     else
-        weights = ones(size(weights,2),1); % Exact threshold - HM Edit (50-150th point only) 
-        weights(1:74,1) = 0;
-        weights(151:end) = 0;
+        weights = ones(size(weights,2),1); % Exact threshold - HM Edit (50-150th point only) 101 points
+        weights(1:49,1) = 0;
+        weights(151:256) = 0;
     end
 end
 

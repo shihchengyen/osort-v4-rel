@@ -44,6 +44,20 @@ searchInds=[];
 runStd2=[];
 switch(detectionMethod)
     case METHOD_EXTRACTION_POWER   %power method
+        
+        % Use a two-step thresholding method - HM Edit
+        % 1. Remove datapoints > 3 s.d. from mean
+        % 2. Compute running power from cleaned sample
+        
+        % Clean sample to remove data > 3 s.d.
+        % Find std of full sample
+        stdFull = std(filteredSignal);
+        ind_exceed3sd = abs(filteredSignal) > 3*stdFull;
+        dataSamplesClean = filteredSignal(~ind_exceed3sd);
+%         timestampsClean = filteredSignal(~ind_exceed3sd);
+%         % Find std of cleaned sample ( < 3 s.d.) 
+%         stdClean = std(dataSamplesClean);
+        
         %calculate local energy
         kernelSize=25;
 
@@ -51,6 +65,13 @@ switch(detectionMethod)
             kernelSize=params.detectionParams.kernelSize;
         end
         
+        % Calculate running power of cleaned sample for computing threshold only - HM Edit
+        runpowerClean = runningStd(dataSamplesClean, kernelSize);
+        d0 = size(dataSamplesClean,1) - size(runpowerClean,1);
+        end0 = runpowerClean(end);
+        runpowerClean(end:end+d0)=end0;
+        
+        % Calculate running power of full sample
         runStd2 = runningStd(filteredSignal, kernelSize);  %5=0.2ms. use ~ 1ms , because thats a typical spike width
         d0 = size(rawSignal,1) - size(runStd2,1);
         end0 = runStd2(end);
@@ -58,6 +79,11 @@ switch(detectionMethod)
 
         %---STD
         upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
+% =======
+%         upperlimFixed = mean(runpowerClean) + params.extractionThreshold*std(runpowerClean); % HM Edit
+% %         upperlimFixed = mean( runStd2 ) + params.extractionThreshold * std(runStd2);    %extractionThreshold default is 5
+% %         upperlimFixed = mean( filteredSignal ) + params.extractionThreshold * mean(runStd2);
+% >>>>>>> Stashed changes
         upperlim=ones(length(runStd2),1)*upperlimFixed;
     case METHOD_EXTRACTION_AMPP   %amplitude thresholding method (positive)
         runStd2=filteredSignal;

@@ -111,7 +111,7 @@ end
 
 
 maxCovered=0;    
-counterNeg=1;
+counter=1;
 counterPos=1;
 totLength=length(rawSignal);
 
@@ -230,11 +230,11 @@ for i=1:length(searchIndBorders)
             end
             % Store extracted spikes
             if abs(rawSignal(segment_inds(peaks_ranked(jj,2)))) > runningThres
-                covered(counterNeg,1:2) = [fromInd2 toInd2];
-                spikeWaveforms(counterNeg,:) = rawSignal( fromInd2:toInd2 )' ; 
-                spikeTimestamps(counterNeg) = fromInd2+peakInd-1; % HM Edit
+                covered(counter,1:2) = [fromInd2 toInd2];
+                spikeWaveforms(counter,:) = rawSignal( fromInd2:toInd2 )' ; 
+                spikeTimestamps(counter) = fromInd2+peakInd-1; % HM Edit
 
-                counterNeg=counterNeg+1; %how many spikes extracted so far
+                counter=counter+1; %how many spikes extracted so far
                 rawTrace(fromInd2:toInd2)=rawSignal( fromInd2:toInd2 );
                 maxCovered=toInd2;
                 % Adjust list of peaks so there are no overlapping windows
@@ -243,8 +243,15 @@ for i=1:length(searchIndBorders)
                 inds_overlap = [inds_overlap; find(peaks_ranked(:,2) < peaks_ranked(jj,2)+22 & peaks_ranked(:,2) > peaks_ranked(jj,2)-22)];
             end
             
-
         end
+        
+% Sort spikes in ascending temporal order
+[spikeTimestamps,indsort] = sort(spikeTimestamps);
+spikeWaveforms = spikeWaveforms(indsort,:);
+
+
+
+
         
 %         % HM Edit - Use the following if detecting spikes with original OSort code
 %         if maxCovered >= searchInds(i)
@@ -324,7 +331,7 @@ t2=clock;
 %-- extract noise traces, if spikes were found (done using segments that
 %don't contain spikes, beginning from first ind)
 noiseTraces=[];
-if params.nrNoiseTraces>0 & counterNeg>1
+if params.nrNoiseTraces>0 & counter>1
     
     %if detection method offers no inds,make one
     if ~exist('inds')

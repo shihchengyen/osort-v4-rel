@@ -52,7 +52,7 @@ end
 %paramsRaw.detectionParams=handles.detectionParams;
 %paramsRaw.peakAlignMethod=handles.peakAlignMethod;
 
-[allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim, ...
+[allSpikes, allSpikesNoiseFree, allSpikesCorrFree, allSpikesTimestamps, dataSamplesRaw,filteredSignal, rawMean,rawTraceSpikes,runStd2,upperlim, upperlims, ...
     stdEstimates, blocksProcessed, noiseTraces, dataSamplesRawUncorrected, blockOffsets, allSpikeInds] = processRaw(handles.rawFilename, handles.nrSamples, handles.Hd, paramsRaw );
 
 %save returned values
@@ -61,7 +61,8 @@ handles.dataSamplesRaw=dataSamplesRaw;
 handles.rawMean=rawMean;
 handles.rawTraceSpikes=rawTraceSpikes;
 handles.runStd2=runStd2;
-handles.upperlim=upperlim;
+handles.upperlim = upperlim;
+handles.upperlims=upperlims;
 handles.filteredSignal=filteredSignal;
 handles.noiseTraces=noiseTraces;
 
