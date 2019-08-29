@@ -1,4 +1,4 @@
-function create_pngs(current_path)
+function create_pngs(thres_string)
 
 %     channel_no = current_path;
 %     disp(channel_no);
@@ -7,8 +7,8 @@ function create_pngs(current_path)
 
     channel_path = cd('./oSort/');
     folder_name = dir();
-    saved_identifier = folder_name(length(folder_name)).name;
-    cd(strcat(folder_name(length(folder_name)).name, '/sort/')); % cd(strcat('detect1Thresh6kern18', '/sort/'));
+    % saved_identifier = folder_name(length(folder_name)).name;
+    cd(strcat(thres_string, '/sort/')); % cd(strcat('detect1Thresh6kern18', '/sort/'));
     folder_name = dir();
     cd(folder_name(length(folder_name)).name);
     mat_name_d = dir('*_sorted_new.mat');
@@ -16,7 +16,7 @@ function create_pngs(current_path)
     handles.spikes_data = load(mat_name{1}); % 'P1_sorted_new.mat'
     cd(channel_path);
     
-    title = ['pngs_', saved_identifier];
+    title = ['pngs_', thres_string];
     mkdir(title);
     cd(title);
 

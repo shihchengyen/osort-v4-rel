@@ -76,8 +76,50 @@ function [output] = runosort_combined_local(channel_name)
                     save('rplhighpass.mat','rw');
                     save('start_times.mat','start_indices');
                     
+                    track_thres = which('runosort.m');
+                    [~, t1] = unix(['grep "paramsIn.detectionMethod="', ' ', track_thres]);
+                    [~, t2] = unix(['grep "dp.kernelSize="', ' ', track_thres]);
+                    [~, t3] = unix(['grep "extractionThreshold = "', ' ', track_thres]);
+                    
+                        fid = fopen(track_thres);
+
+                        tline = fgetl(fid);
+                        while ischar(tline)
+                            if length(strfind(tline, 'paramsIn.detectionMethod=')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    method_save = tline;
+                                end
+                            end
+                            if length(strfind(tline, 'dp.kernelSize=')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    kernel_save = tline;
+                                end
+                            end
+                            if length(strfind(tline, 'extractionThreshold = ')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    thres_save = tline;
+                                end
+                            end                            
+                            tline = fgetl(fid);
+                        end                    
+                                       
+                    t1 = extractAfter(method_save, '=');
+                    t1 = strtrim(extractBefore(t1, ';'))
+                    t2 = extractAfter(kernel_save, '=');
+                    t2 = strtrim(extractBefore(t2, ';'))
+                    t3 = extractAfter(thres_save, '=');
+                    t3 = strtrim(extractBefore(t3, ';'))
+                    
+                    space = ' ';
+                    target_clearing = strcat('*detect', t1, 'Thresh', t3, 'kern', t2, '*"');
+                    disp(target_clearing);
+                    final_command = strcat('for i in `find . -name "', target_clearing, '`; do echo $i; rm -r $i; done;');
+                    disp(final_command);
+                    unix(char(final_command));
+                   
+                    
                     RunOSort(pwd);
-                    create_pngs(pwd);
+                    create_pngs(char(strcat('detect', t1, 'Thresh', t3, 'kern', t2)));
                     
                     delete('rplhighpass.mat');
                     
