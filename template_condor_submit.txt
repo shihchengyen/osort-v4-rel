@@ -1,0 +1,27 @@
+universe = vanilla
+executable = /Applications/MATLAB_R2016b.app/bin/matlab
+
+# Requirements = (machine == "work27.neuralc")
+
+Requirements = (machine == "work07.neuralc") || (machine == "work08.neuralc") || (machine == "work09.neuralc") || (machine == "work10.neuralc") || (machine == "work11.local") || (machine == "work14.neuralc") || (machine == "work15.neuralc") || (machine == "work16") || (machine == "work17.neuralc") || (machine == "work18.neuralc") || (machine == "work19.neuralc") || (machine == "work20.neuralc") || (machine == "work21.neuralc") || (machine == "work22.neuralc") || (machine == "work23.neuralc") || (machine == "work24.neuralc") || (machine == "work25.neuralc") || (machine == "work26.neuralc") || (machine == "work27.neuralc") || (machine == "localhost")
+
+arguments = -nodisplay -singleCompThread -r setPath_solo();condor_osort();exit
+transfer_executable = False
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+RUN_AS_OWNER = False
+getenv = True
+transfer_output_files = oSort, start_times.mat, pngsfolder/
+
+Environment = "MATLAB_PREFDIR=/Volumes/Drive1"
+
+transfer_input_files
+
+stream_output = True
+stream_error = True
+
+log = $(Cluster).$(Process).log
+output = $(Cluster).$(Process).out
+error = $(Cluster).$(Process).err
+
+queue 1
