@@ -39,6 +39,43 @@ timestampsFull = double(timestampsFull);
 % dataSamplesFull = dataSamplesFull(~ind_noise);
 % timestampsFull = timestampsFull(~ind_noise);
 
+% Constrain to window if specified
+if nargin > 1
+    try
+        dataSamples = dataSamplesFull(1,fromInd:toInd);
+    catch
+        dataSamples = dataSamplesFull(fromInd:toInd,1);
+    end
+    timestamps = timeStampsFull(fromInd:toInd,1);
+else
+    dataSamples = dataSamplesFull;
+    timestamps = timestampsFull;
+end
+
+% if nargin > 1
+%     try
+%         dataSamples(:,1) = h.analogData(1, fromInd:toInd); % HM Edit
+%     catch
+%         dataSamples(:,1) = h.analogData(fromInd:toInd,1); % HM Edit
+%     end
+%     dataSamples = double(dataSamples);
+%     
+% %     timestamps(:,1) = 1:length(dataSamples); %%%%% WHAT????
+% %     timestamps(:,1) = [fromInd:toInd].*(1e6/samplingFreq);
+% %     timestamps(:,1) = h.analogTime(fromInd:toInd); % HM Edit
+%     timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
+%     timestamps = timestamps(fromInd:toInd); % constrain to specified block
+% else
+%     try
+% %         timestamps(:,1) = (1:length(h.analogData)).*(1e6/samplingFreq);
+%         timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
+%     catch
+% %         timestamps(:,1) = (1:length(h.analogData)); % for standaloneInit
+% %         timestamps(:,1) = h.analogTime; % HM Edit
+%         timestamps(:,1) = (0:(h.analogInfo.NumberSamples-1))' ./ h.analogInfo.SampleRate;
+%     end
+% end
+
 timestamps = timestamps + timestartOffset;
 timestamps = timestamps * 1e6; % convert Ripple data (in seconds) to Neuralynx convention (microseconds) % HM edit
 % timestamps = double(timestamps); % HM edit
