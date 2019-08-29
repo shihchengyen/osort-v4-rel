@@ -1,9 +1,9 @@
 universe = vanilla
 executable = /Applications/MATLAB_R2016b.app/bin/matlab
 
-Requirements = (machine == "work27.neuralc")
+# Requirements = (machine == "work27.neuralc")
 
-# Requirements = (machine == "work07.neuralc") || (machine == "work08.neuralc") || (machine == "work09.neuralc") || (machine == "work10.neuralc") || (machine == "work11.local") || (machine == "work14.neuralc") || (machine == "work15.neuralc") || (machine == "work16") || (machine == "work17.neuralc") || (machine == "work18.neuralc") || (machine == "work19.neuralc") || (machine == "work20.neuralc") || (machine == "work21.neuralc") || (machine == "work22.neuralc") || (machine == "work23.neuralc") || (machine == "work24.neuralc") || (machine == "work25.neuralc") || (machine == "work26.neuralc") || (machine == "work27.neuralc") || (machine == "localhost")
+Requirements = (machine == "work07.neuralc") || (machine == "work08.neuralc") || (machine == "work09.neuralc") || (machine == "work10.neuralc") || (machine == "work11.local") || (machine == "work14.neuralc") || (machine == "work15.neuralc") || (machine == "work16") || (machine == "work17.neuralc") || (machine == "work18.neuralc") || (machine == "work19.neuralc") || (machine == "work20.neuralc") || (machine == "work21.neuralc") || (machine == "work22.neuralc") || (machine == "work23.neuralc") || (machine == "work24.neuralc") || (machine == "work25.neuralc") || (machine == "work26.neuralc") || (machine == "work27.neuralc") || (machine == "localhost")
 
 arguments = -nodisplay -singleCompThread -r setPath_solo();condor_osort();exit
 transfer_executable = False
