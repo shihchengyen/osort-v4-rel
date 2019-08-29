@@ -42,6 +42,7 @@ if fileFormat==5
 %    nrBlocks=nrSamples/512000; HM Edit
    nrBlocks=4;
    blocksize = ceil(nrSamples/nrBlocks);
+   
 
    sampleFreq=30000;	% HM edit
    isContinous=1;
