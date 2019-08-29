@@ -77,9 +77,6 @@ function [output] = runosort_combined_local(channel_name)
                     save('start_times.mat','start_indices');
                     
                     track_thres = which('runosort.m');
-                    [~, t1] = unix(['grep "paramsIn.detectionMethod="', ' ', track_thres]);
-                    [~, t2] = unix(['grep "dp.kernelSize="', ' ', track_thres]);
-                    [~, t3] = unix(['grep "extractionThreshold = "', ' ', track_thres]);
                     
                         fid = fopen(track_thres);
 
