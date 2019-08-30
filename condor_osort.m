@@ -47,7 +47,41 @@ function condor_osort()
     save('start_times.mat','start_indices');
     
     RunOSort(pwd);
-    create_pngs(pwd);    
+    
+                    track_thres = which('runosort.m');
+                    
+                        fid = fopen(track_thres);
+
+                        tline = fgetl(fid);
+                        while ischar(tline)
+                            if length(strfind(tline, 'paramsIn.detectionMethod=')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    method_save = tline;
+                                end
+                            end
+                            if length(strfind(tline, 'dp.kernelSize=')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    kernel_save = tline;
+                                end
+                            end
+                            if length(strfind(tline, 'extractionThreshold = ')) ~= 0
+                                if strncmpi(tline, '%', 1) == 0
+                                    thres_save = tline;
+                                end
+                            end                            
+                            tline = fgetl(fid);
+                        end                    
+                                       
+                    t1 = extractAfter(method_save, '=');
+                    t1 = strtrim(extractBefore(t1, ';'))
+                    t2 = extractAfter(kernel_save, '=');
+                    t2 = strtrim(extractBefore(t2, ';'))
+                    t3 = extractAfter(thres_save, '=');
+                    t3 = strtrim(extractBefore(t3, ';'))
+                    
+                    
+    
+    create_pngs(char(strcat('detect', t1, 'Thresh', t3, 'kern', t2)));    
     unix('mkdir pngsfolder');
     unix('mv pngs_* pngsfolder');
     ls
