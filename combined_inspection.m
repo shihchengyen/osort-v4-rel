@@ -94,6 +94,13 @@ function [handles] = initialize_data(hObject, eventdata, handles)
     mat_name_d = dir('*_sorted_new.mat');
     mat_name = {mat_name_d.name};
     handles.spikes_data = load(mat_name{1});
+    
+    if length(handles.spikes_data.nrAssigned) == 0
+        handles.empty_channel = 1;
+        guidata(hObject, handles);
+        return;
+    end
+    
     if size(handles.spikes_data.nrAssigned, 1) ~= 1
         handles.spikes_data.nrAssigned = flip(handles.spikes_data.nrAssigned);
     end
@@ -822,13 +829,17 @@ guidata(hObject, handles);
 % --- Executes just before combined_inspection is made visible.
 function combined_inspection_OpeningFcn(hObject, eventdata, handles, varargin)
 
+    handles.empty_channel = 0;
     handles = initialize_data(hObject, eventdata, handles);
-    disp('starting automerge');
-    disp(handles.spikes_data.nrAssigned);
-    handles = auto_merge(hObject, eventdata, handles);
-    disp(handles.spikes_data.nrAssigned);
-    handles = page_plots(hObject, eventdata, handles);
-
+    if handles.empty_channel == 1
+        set(handles.pca_info1, 'String', 'no clusters found');
+    else
+        disp('starting automerge');
+        disp(handles.spikes_data.nrAssigned);
+        handles = auto_merge(hObject, eventdata, handles);
+        disp(handles.spikes_data.nrAssigned);
+        handles = page_plots(hObject, eventdata, handles);
+    end
 
     % Choose default command line output for combined_inspection
     handles.output = hObject;
